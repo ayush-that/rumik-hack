@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n \"next,convex\" -c \"blue,green\" \"pnpm next dev\" \"npx convex dev\"",
+    "dev": "concurrently -n \"next,convex,voice\" -c \"blue,green,magenta\" \"pnpm next dev\" \"npx convex dev\" \"pnpm dev:voice\"",
     "dev:web": "next dev",
     "dev:convex": "npx convex dev",
+    "dev:voice": "cd voice-agent/server && uv run bot.py",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
