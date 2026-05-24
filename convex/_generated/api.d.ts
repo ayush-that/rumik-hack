@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as calls from "../calls.js";
+import type * as chat from "../chat.js";
 import type * as counsellors from "../counsellors.js";
 import type * as dodo from "../dodo.js";
 import type * as http from "../http.js";
@@ -26,6 +27,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   calls: typeof calls;
+  chat: typeof chat;
   counsellors: typeof counsellors;
   dodo: typeof dodo;
   http: typeof http;

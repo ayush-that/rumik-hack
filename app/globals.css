@@ -5,11 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Tara — almanac palette */
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
+  --font-heading: var(--font-display);
+
+  /* shadcn fallbacks still need to resolve */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,78 +54,93 @@
 }
 
 :root {
-  --background: #fdf8eb;
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* paper & ink — warmer than #fdf8eb, less yellow-cast */
+  --paper: #f6efdc;
+  --paper-deep: #ebe2c8;
+  --paper-edge: #d9cda7;
+  --vellum: #fbf6e8;
+  --ink: #1b1612;
+  --ink-soft: #3d342a;
+  --ink-faint: #786a55;
+  --ink-mute: #a89a7d;
+
+  /* saffron — primary accent, replaces flat yellow */
+  --saffron: #c8531c;       /* deep marigold/sindoor */
+  --saffron-warm: #e07a3e;  /* mid-tone */
+  --saffron-soft: #f3a76d;  /* tint */
+  --saffron-wash: #fae6cf;  /* very pale wash */
+  --saffron-ink: #5e2308;
+
+  /* peacock — secondary accent for status, ratings, links */
+  --peacock: #1f5f5b;
+  --peacock-soft: #3f8a82;
+  --peacock-wash: #d9ece8;
+
+  /* sindoor red — destructive/wait/error */
+  --sindoor: #a8231a;
+  --sindoor-soft: #d35a4f;
+  --sindoor-wash: #f4d6cf;
+
+  /* gold for stars/celestial */
+  --gold: #b8860b;
+
+  /* surfaces */
+  --card: var(--vellum);
+  --card-foreground: var(--ink);
+  --card-border: #e6d9b7;
+  --card-border-strong: #c9b884;
+
+  /* shadcn fallbacks (kept so radix/shadcn UI primitives don't break) */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --popover: var(--vellum);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-deep);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-deep);
+  --muted-foreground: var(--ink-faint);
+  --accent: var(--saffron-wash);
+  --accent-foreground: var(--saffron-ink);
+  --destructive: var(--sindoor);
+  --border: var(--card-border);
+  --input: var(--card-border);
+  --ring: var(--saffron-warm);
+
+  --chart-1: var(--saffron-warm);
+  --chart-2: var(--peacock-soft);
+  --chart-3: var(--gold);
+  --chart-4: var(--ink-faint);
+  --chart-5: var(--sindoor-soft);
+
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  /* Counsellor directory tokens */
-  --muted: #1a1a1a;
-  --muted-foreground: #6b6b6b;
-  --card-border: #ececec;
-  --accent-yellow: #f8d65a;
-  --chip-active: #1f6bff;
+
+  --sidebar: var(--vellum);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--saffron);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--paper-deep);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--card-border);
+  --sidebar-ring: var(--saffron-warm);
+
+  /* legacy aliases — keep older components rendering until migrated */
+  --accent-yellow: var(--saffron-warm);
+  --chip-active: var(--saffron);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* App is paper-themed by intent; minimal dark fallback so utilities don't error */
+  --paper: #181513;
+  --paper-deep: #221d18;
+  --vellum: #1f1a16;
+  --ink: #f3eada;
+  --ink-soft: #d4c8af;
+  --ink-faint: #8f8268;
+  --card-border: #2b251e;
+  --background: var(--paper);
+  --foreground: var(--ink);
 }
 
 @layer base {
@@ -128,12 +148,160 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--paper);
+    color: var(--ink);
+    /* Letterpress-feel grain: very subtle SVG noise + warm vignette */
+    background-image:
+      radial-gradient(120% 80% at 50% 0%, transparent 60%, rgba(106, 76, 30, 0.08) 100%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.12 0 0 0 0 0.09 0 0 0 0 0.05 0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+    background-attachment: fixed;
+    background-size: auto, 220px 220px;
+    font-feature-settings: "ss01", "cv11";
+    font-variant-numeric: oldstyle-nums proportional-nums;
   }
-  html {
-    @apply font-sans;
+  html { @apply font-sans; }
+
+  /* Display headings — Fraunces, optical-size aware */
+  .font-display, h1, h2, h3 { font-family: var(--font-display), Georgia, serif; font-feature-settings: "ss01"; letter-spacing: -0.01em; }
+  h1 { font-variation-settings: "opsz" 144, "SOFT" 30; }
+  h2 { font-variation-settings: "opsz" 80, "SOFT" 50; }
+  h3 { font-variation-settings: "opsz" 36, "SOFT" 50; }
+
+  /* Tabular numerals where price/rating/dates need to align */
+  .tabular-nums, .nums { font-variant-numeric: tabular-nums; }
+
+  /* Small caps label */
+  .eyebrow {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
   }
 }
 
+/* ---------- Components ---------- */
+
+/* Hairline divider with a tiny diamond at the center — used as a section break */
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--ink-mute);
+}
+.rule::before, .rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--card-border-strong), transparent);
+}
+.rule-diamond {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--saffron);
+  transform: rotate(45deg);
+}
+
+/* Paper card — vellum + 1px warm border + tiny inset highlight */
+.card-paper {
+  background: var(--vellum);
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 1px 1px rgba(60, 40, 10, 0.04);
+}
+
+/* Saffron primary button — flat, ink text, refined press */
+.btn-saffron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--saffron-soft) 0%, var(--saffron-warm) 100%);
+  border: 1px solid var(--saffron);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 200, 0.55),
+    0 1px 0 rgba(94, 35, 8, 0.18),
+    0 4px 12px -6px rgba(200, 83, 28, 0.45);
+  transition: transform 120ms ease-out, filter 120ms;
+}
+.btn-saffron:active { transform: translateY(1px); filter: brightness(0.97); }
+.btn-saffron:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Outline (chat) button */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--vellum);
+  border: 1px solid var(--card-border-strong);
+  transition: background 120ms;
+}
+.btn-outline:active { background: var(--paper-deep); }
+
+/* "Pebble" small ghost button for ratings/chips */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--card-border-strong);
+  background: var(--vellum);
+  color: var(--ink-soft);
+}
+
+/* Decorative wheel rotation — slow, almost imperceptible */
+@keyframes wheel-spin {
+  to { transform: rotate(360deg); }
+}
+.wheel-spin { animation: wheel-spin 90s linear infinite; }
+
+/* Slow blur-clear page intro */
+@keyframes ink-reveal {
+  from { opacity: 0; filter: blur(6px); transform: translateY(8px); }
+  to   { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+.ink-reveal { animation: ink-reveal 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.ink-reveal-delay-1 { animation-delay: 80ms; }
+.ink-reveal-delay-2 { animation-delay: 160ms; }
+.ink-reveal-delay-3 { animation-delay: 240ms; }
+.ink-reveal-delay-4 { animation-delay: 320ms; }
+
+/* Pulsing dot for "live" voice call */
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(31, 95, 91, 0.4); }
+  50%      { box-shadow: 0 0 0 10px rgba(31, 95, 91, 0); }
+}
+.pulse-ring { animation: pulse-ring 1.8s ease-out infinite; }
+
+/* Scrollbar hide */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Custom date/time inputs — kill the default UA chrome on iOS/Android */
+input[type="date"], input[type="time"] {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.5rem;
+  font-feature-settings: "ss01";
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.3) sepia(0.5) saturate(2) hue-rotate(-10deg);
+  opacity: 0.7;
+  cursor: pointer;
+}

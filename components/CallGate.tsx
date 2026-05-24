@@ -32,13 +32,20 @@ export default function CallGate({ counsellor }: { counsellor: Counsellor }) {
         );
     }
 
-    const ready = forceProceed || (profile && profile.onboarded);
+    if (!profile?.onboarded) {
+        if (forceProceed) {
+            return (
+                <div className="min-h-[calc(100vh-9rem)] flex items-center justify-center text-zinc-500 text-sm">
+                    Saving your details…
+                </div>
+            );
+        }
 
-    if (!ready) {
         return (
             <OnboardingForm
                 counsellorName={counsellor.name}
                 initialName={profile?.displayName ?? undefined}
+                action="call"
                 onDone={() => setForceProceed(true)}
             />
         );

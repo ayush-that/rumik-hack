@@ -11,9 +11,10 @@ export const createPayment = internalMutation({
         status: v.nullable(v.string()),
         webhookPayload: v.string(),
     },
-    handler: async (ctx, args) => {
+    handler: async () => {
         // Handle your after payment logic here
         // (sending email, giving access to users)
+        return null;
     }
 })
 
@@ -25,8 +26,9 @@ export const createSubscription = internalMutation({
         status: v.nullable(v.string()),
         webhookPayload: v.string(),
     },
-    handler: async (ctx, args) => {
+    handler: async () => {
         // Handle your after subscription start logic here 
         // (sending email, giving access to users)
+        return null;
     }
 })

@@ -40,3 +40,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# mcp / agent automation artifacts
+.playwright-mcp/
+.agents/
+.claude/
+skills-lock.json
+
+# scratch / experiments
+/public/logo-candidates*/
+/tmp/
+*.log
