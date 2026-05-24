@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 from typing import Optional
 
 import aiohttp
@@ -14,6 +15,7 @@ from pipecat.services.tts_service import TTSService
 from pipecat.utils.tracing.service_decorators import traced_tts
 
 
+@dataclass
 class RumikTTSSettings(TTSSettings):
     """Settings for Rumik SILK."""
 
