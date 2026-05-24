@@ -149,9 +149,16 @@ async def run_bot(transport: BaseTransport, counsellor: dict | None = None):
         ],
     )
 
-    @task.rtvi.event_handler("on_client_ready")
-    async def on_client_ready(rtvi):
-        # Kick off the conversation
+    # Trigger the intro on the transport-level connected event so we don't
+    # depend on the WebRTC data channel / RTVI handshake — the audio media
+    # track is up by this point, which is all we need to play TTS.
+    intro_sent = False
+
+    async def send_intro():
+        nonlocal intro_sent
+        if intro_sent:
+            return
+        intro_sent = True
         intro = (
             f"Greet the client warmly as {counsellor.get('name')} and ask how you can help them today."
             if counsellor else "Please introduce yourself."
@@ -161,7 +168,14 @@ async def run_bot(transport: BaseTransport, counsellor: dict | None = None):
 
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
-        logger.info("Client connected")
+        logger.info("Client connected — sending intro")
+        await send_intro()
+
+    # Belt-and-braces: also fire on RTVI ready if the data channel does open.
+    @task.rtvi.event_handler("on_client_ready")
+    async def on_client_ready(rtvi):
+        logger.info("RTVI client ready")
+        await send_intro()
 
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client):
