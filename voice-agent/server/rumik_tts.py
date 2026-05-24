@@ -1,12 +1,14 @@
-"""Rumik SILK TTS service for Pipecat."""
+"""Rumik SILK TTS service for Pipecat (WebSocket streaming)."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import Optional
 
 import aiohttp
+import websockets
 from loguru import logger
 
 from pipecat.frames.frames import ErrorFrame, Frame, TTSAudioRawFrame
@@ -33,16 +35,22 @@ class RumikTTSSettings(TTSSettings):
 
 
 class RumikTTSService(TTSService):
-    """Pipecat TTS using Rumik SILK REST endpoint.
+    """Pipecat TTS using Rumik SILK streaming WebSocket.
 
-    Returns 24 kHz mono PCM int16 (WAV header stripped).
+    Flow per utterance:
+      1. POST /v1/tts/ws-connect → {ws_url, token}
+      2. WS connect ws_url?token=...
+      3. send JSON synthesis frame
+      4. receive raw PCM int16 24 kHz mono binary frames; yield them as
+         TTSAudioRawFrame so the transport can stream audio out the moment
+         SILK starts producing it.
+      5. terminal text frame {"type":"done"} ends the utterance.
     """
 
     Settings = RumikTTSSettings
     _settings: Settings
 
     SAMPLE_RATE = 24000
-    WAV_HEADER_BYTES = 44
 
     def __init__(
         self,
@@ -86,11 +94,10 @@ class RumikTTSService(TTSService):
 
         logger.debug(f"{self}: Rumik SILK TTS [{text!r}]")
 
-        url = f"{self._base_url}/v1/tts"
         headers = {"Authorization": f"Bearer {self._api_key}"}
+        mint_url = f"{self._base_url}/v1/tts/ws-connect"
 
-        payload: dict = {
-            "model": self._settings.model,
+        synthesis: dict = {
             "text": text,
             "temperature": self._settings.temperature,
             "top_p": self._settings.top_p,
@@ -100,51 +107,64 @@ class RumikTTSService(TTSService):
         }
         if self._settings.model == "mulberry":
             if self._settings.description:
-                payload["description"] = self._settings.description
+                synthesis["description"] = self._settings.description
             if self._settings.speaker:
-                payload["speaker"] = self._settings.speaker
+                synthesis["speaker"] = self._settings.speaker
             if self._settings.f0_up_key:
-                payload["f0_up_key"] = self._settings.f0_up_key
+                synthesis["f0_up_key"] = self._settings.f0_up_key
+
+        # ws-connect needs model + text up-front; the same fields are echoed
+        # back to the WS in the synthesis frame.
+        mint_body: dict = {"model": self._settings.model, "text": text}
 
         try:
             await self.start_ttfb_metrics()
 
-            async with self._session.post(url, headers=headers, json=payload) as response:
-                if response.status != 200:
-                    err = await response.text()
-                    yield ErrorFrame(f"Rumik SILK HTTP {response.status}: {err[:200]}")
+            # Step 1: mint a one-shot WS session
+            async with self._session.post(mint_url, headers=headers, json=mint_body) as resp:
+                if resp.status != 200:
+                    err = await resp.text()
+                    yield ErrorFrame(f"Rumik ws-connect HTTP {resp.status}: {err[:200]}")
                     return
+                session = await resp.json()
 
-                await self.start_tts_usage_metrics(text)
+            ws_url = session.get("ws_url")
+            token = session.get("token")
+            if not ws_url or not token:
+                yield ErrorFrame(f"Rumik ws-connect malformed response: {session}")
+                return
 
-                CHUNK_SIZE = self.chunk_size
-                buffer = bytearray()
-                header_stripped = False
+            await self.start_tts_usage_metrics(text)
+
+            # Step 2: connect WS, send synthesis frame, stream PCM frames out
+            full_url = f"{ws_url}?token={token}"
+            async with websockets.connect(full_url, max_size=None) as ws:
+                await ws.send(json.dumps(synthesis))
                 first = True
-
-                async for chunk in response.content.iter_chunked(CHUNK_SIZE):
-                    if not chunk:
-                        continue
-                    buffer.extend(chunk)
-
-                    if not header_stripped:
-                        if len(buffer) < self.WAV_HEADER_BYTES:
+                async for msg in ws:
+                    if isinstance(msg, (bytes, bytearray)):
+                        if not msg:
                             continue
-                        # Drop the 44-byte WAV header
-                        del buffer[: self.WAV_HEADER_BYTES]
-                        header_stripped = True
-
-                    if buffer:
                         if first:
                             await self.stop_ttfb_metrics()
                             first = False
                         yield TTSAudioRawFrame(
-                            audio=bytes(buffer),
+                            audio=bytes(msg),
                             sample_rate=self.sample_rate,
                             num_channels=1,
                             context_id=context_id,
                         )
-                        buffer.clear()
+                    else:
+                        # Text frame — terminal "done" or an error.
+                        try:
+                            data = json.loads(msg)
+                        except json.JSONDecodeError:
+                            continue
+                        if data.get("type") == "done":
+                            break
+                        if data.get("error"):
+                            yield ErrorFrame(f"Rumik SILK stream error: {data['error']}")
+                            return
 
         except Exception as e:
             logger.exception("Rumik TTS error")
