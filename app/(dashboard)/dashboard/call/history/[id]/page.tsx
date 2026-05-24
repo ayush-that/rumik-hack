@@ -73,8 +73,8 @@ export default async function CallDetailPage({ params }: { params: Promise<{ id:
                                 key={t._id}
                                 className={
                                     t.role === "user"
-                                        ? "bg-zinc-100 rounded-2xl rounded-br-sm px-4 py-2 text-sm text-zinc-700 ml-auto max-w-[80%] text-left w-fit"
-                                        : "bg-emerald-50 rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-emerald-900 max-w-[80%] text-left w-fit"
+                                        ? "bg-zinc-100 rounded-2xl rounded-br-sm px-4 py-2 text-sm text-zinc-700 ml-auto max-w-[92%] text-left w-fit"
+                                        : "bg-emerald-50 rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-emerald-900 max-w-[92%] text-left w-fit"
                                 }
                             >
                                 {t.text}

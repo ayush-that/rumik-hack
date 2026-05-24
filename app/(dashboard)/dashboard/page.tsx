@@ -14,7 +14,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     });
     return (
         <>
-            <div className="fixed top-14 inset-x-0 mx-auto max-w-[480px] bg-[var(--background)] border-x border-b border-[var(--card-border)] z-40">
+            <div className="fixed top-14 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-[var(--background)] border-x border-b border-[var(--card-border)] z-40">
                 <CategoryChips />
                 <FilterChips />
             </div>
