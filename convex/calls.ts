@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, QueryCtx, MutationCtx } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { Doc } from "./_generated/dataModel";
 
 async function requireUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
     const identity = await ctx.auth.getUserIdentity();

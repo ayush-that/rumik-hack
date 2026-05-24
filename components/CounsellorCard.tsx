@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MapPin } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import RatingStars from "@/components/RatingStars";
+import { MessageCircle } from "lucide-react";
 import type { Doc } from "@/convex/_generated/dataModel";
 
 function formatOrders(n: number) {
@@ -46,12 +47,19 @@ export default function CounsellorCard({ c, priority = false }: { c: Doc<"counse
                 </p>
             </div>
 
-            <div className="flex flex-col items-end justify-center gap-1 shrink-0">
+            <div className="flex flex-col items-end justify-center gap-1.5 shrink-0">
                 <Link
                     href={`/dashboard/call/${c.slug}`}
                     className={`px-6 py-2 rounded-full border text-sm font-semibold ${available ? "border-emerald-500 text-emerald-600" : "border-red-400 text-red-500"}`}
                 >
                     Call
+                </Link>
+                <Link
+                    href={`/dashboard/chat?counsellor=${c.slug}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-xs font-semibold text-zinc-700"
+                >
+                    <MessageCircle size={13} />
+                    Chat
                 </Link>
                 {!available && <span className="text-xs text-red-400">wait ~ {c.waitMinutes}m</span>}
             </div>

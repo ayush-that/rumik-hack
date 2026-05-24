@@ -405,7 +405,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                 audioCtxRef.current = null;
             }
         };
-    }, [handleUserTurn, stopPlayback]);
+    }, [handleUserTurn, profile?.displayName, stopPlayback]);
 
     const handleEnd = useCallback(() => {
         router.push(`/dashboard/counsellor/${counsellor.slug}`);

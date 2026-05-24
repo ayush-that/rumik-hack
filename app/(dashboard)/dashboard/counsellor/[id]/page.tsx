@@ -3,16 +3,16 @@ import { api } from "@/convex/_generated/api";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Quote } from "lucide-react";
+import { ArrowLeft, MapPin, MessageCircle, Phone, Quote } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import RatingStars from "@/components/RatingStars";
-import CallNowButton from "@/components/CallNowButton";
 import { generateReviews, formatRelativeDays } from "@/lib/reviews";
 
 export default async function CounsellorDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const c = await fetchAuthQuery(api.counsellors.getBySlug, { slug: id });
     if (!c) notFound();
+    const available = c.waitMinutes === 0;
     return (
         <div className="px-4 pt-3">
             <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-zinc-600 mb-3">
@@ -69,12 +69,22 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                     <p className="mt-2 text-xs text-zinc-500">— {c.name.split(" ")[0]}&rsquo;s signature line</p>
                 </section>
             )}
-            <div className="mt-8">
-                <CallNowButton
-                    counsellorSlug={c.slug}
-                    counsellorName={c.name}
-                    waitMinutes={c.waitMinutes}
-                />
+
+            <div className="mt-8 grid grid-cols-2 gap-3">
+                <Link
+                    href={`/dashboard/chat?counsellor=${c.slug}`}
+                    className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white py-3 font-semibold text-zinc-800"
+                >
+                    <MessageCircle size={18} />
+                    Chat
+                </Link>
+                <Link
+                    href={`/dashboard/call/${c.slug}`}
+                    className={`flex items-center justify-center gap-2 rounded-full py-3 font-semibold ${available ? "bg-emerald-500 text-white" : "bg-red-100 text-red-600"}`}
+                >
+                    <Phone size={18} />
+                    {available ? "Call now" : `Wait ${c.waitMinutes}m`}
+                </Link>
             </div>
 
             <section className="mt-10">

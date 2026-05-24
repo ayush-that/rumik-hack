@@ -14,10 +14,11 @@ const STEP_ICONS = [Camera, User, Venus, Calendar, Clock, MapPin];
 interface Props {
     counsellorName: string;
     initialName?: string;
+    action?: "chat" | "call";
     onDone: () => void;
 }
 
-export default function OnboardingForm({ counsellorName, initialName, onDone }: Props) {
+export default function OnboardingForm({ counsellorName, initialName, action = "chat", onDone }: Props) {
     const saveProfile = useMutation(api.user.saveProfile);
     const generateUploadUrl = useMutation(api.user.generateProfileUploadUrl);
 
@@ -306,7 +307,7 @@ export default function OnboardingForm({ counsellorName, initialName, onDone }: 
                 {step === 5
                     ? saving
                         ? "Saving…"
-                        : `Start chat with ${counsellorName}`
+                        : `Start ${action} with ${counsellorName}`
                     : step === 0 && !imagePreview
                       ? "Skip"
                       : "Next"}

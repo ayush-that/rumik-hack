@@ -11,15 +11,13 @@ export function UserSync() {
 
   useEffect(() => {
     if (isAuthenticated && !isLoading && !hasSynced.current) {
-      console.log("called user sync");
-
       hasSynced.current = true;
-      ensureUser();
+      void ensureUser();
     }
 
     if (!isAuthenticated && !isLoading) {
       hasSynced.current = false;
     }
-  }, [isAuthenticated, isLoading]);
+  }, [ensureUser, isAuthenticated, isLoading]);
   return null;
 }
