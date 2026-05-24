@@ -217,8 +217,17 @@ async def bot(runner_args: RunnerArguments):
 
     counsellor = None
     body = getattr(runner_args, "body", None)
+    logger.info(f"runner_args.body = {body!r}")
     if isinstance(body, dict):
-        counsellor = body.get("counsellor")
+        # The Pipecat JS SDK wraps user requestData inside an outer object that
+        # also contains sdp/type/pc_id. Sometimes the server unwraps to just the
+        # user data, sometimes not. Try both.
+        counsellor = body.get("counsellor") or (
+            body.get("requestData", {}).get("counsellor") if isinstance(body.get("requestData"), dict) else None
+        ) or (
+            body.get("request_data", {}).get("counsellor") if isinstance(body.get("request_data"), dict) else None
+        )
+    logger.info(f"resolved counsellor = {counsellor}")
 
     await run_bot(transport, counsellor=counsellor)
 
