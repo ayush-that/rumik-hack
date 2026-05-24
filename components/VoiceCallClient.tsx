@@ -186,27 +186,37 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
 
     // ----- Bootstrap call -----
     useEffect(() => {
-        if (startedRef.current) return;
-        startedRef.current = true;
-
+        // NOTE: do NOT guard with a ref-based "already started" check. Next.js
+        // dev runs effects twice (React Strict Mode); a ref-guard makes the
+        // second mount no-op after the first mount's cleanup already tore
+        // everything down — so nothing ends up alive. Just let it re-init.
         let cancelled = false;
+        startedRef.current = true;
 
         (async () => {
             try {
-                // 1. Get mic
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                });
+                // 1. Get mic — race with a timeout so we surface stuck permission
+                const stream = await Promise.race([
+                    navigator.mediaDevices.getUserMedia({
+                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    }),
+                    new Promise<MediaStream>((_, rej) =>
+                        setTimeout(() => rej(new Error("Microphone permission timed out (check the browser permission prompt)")), 10000),
+                    ),
+                ]);
                 if (cancelled) {
                     stream.getTracks().forEach((t) => t.stop());
                     return;
                 }
                 streamRef.current = stream;
+                console.log("[voice] mic OK");
 
                 // 2. Fetch Deepgram key
                 const keyRes = await fetch("/api/voice/deepgram-key");
-                if (!keyRes.ok) throw new Error("deepgram-key fetch failed");
-                const { key } = await keyRes.json();
+                if (!keyRes.ok) throw new Error(`deepgram-key fetch failed: ${keyRes.status}`);
+                const { key, error: keyErr } = await keyRes.json();
+                if (keyErr || !key) throw new Error(keyErr || "no deepgram key returned");
+                console.log("[voice] dg key OK");
 
                 // 3. Open Deepgram WS
                 //    nova-3 supports multilingual via `language=multi`.
@@ -229,6 +239,7 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
                 let interimBuf = "";
 
                 dgWs.onopen = () => {
+                    console.log("[voice] dg ws open");
                     if (cancelled) {
                         try { dgWs.close(); } catch {}
                         return;
@@ -302,11 +313,14 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
                     }
                 };
             } catch (err) {
-                console.error("call bootstrap failed", err);
+                if (cancelled) return; // expected during strict-mode unmount
+                console.error("[voice] bootstrap failed", err);
                 setState("error");
                 const m = (err as Error)?.message?.toLowerCase() ?? "";
-                if (m.includes("permission") || m.includes("notallowed")) {
+                if (m.includes("permission") || m.includes("notallowed") || m.includes("denied")) {
                     setErrorMsg("Allow microphone access to start the call.");
+                } else if (m.includes("timed out")) {
+                    setErrorMsg("Microphone permission prompt timed out. Click the mic icon in the address bar to allow.");
                 } else {
                     setErrorMsg((err as Error)?.message ?? "Failed to start call");
                 }
@@ -315,6 +329,7 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
 
         return () => {
             cancelled = true;
+            startedRef.current = false;
             // Tear everything down
             stopPlayback();
             if (dgKeepAliveRef.current) {

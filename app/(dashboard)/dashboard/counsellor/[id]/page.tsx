@@ -3,8 +3,9 @@ import { api } from "@/convex/_generated/api";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Phone, Star } from "lucide-react";
+import { ArrowLeft, Phone } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import RatingStars from "@/components/RatingStars";
 
 export default async function CounsellorDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -18,8 +19,9 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
             </Link>
             <div className="flex flex-col items-center text-center">
                 <Image src={c.portrait} alt={c.name} width={140} height={140} className="rounded-full object-cover h-36 w-36" />
-                <div className="flex gap-0.5 text-amber-400 mt-3">
-                    {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={16} fill="currentColor" strokeWidth={0} />)}
+                <div className="mt-3 flex items-center gap-1.5">
+                    <RatingStars rating={c.rating} size={16} />
+                    <span className="text-sm text-zinc-600">{c.rating.toFixed(1)}</span>
                 </div>
                 <h1 className="mt-2 text-2xl font-bold tracking-tight flex items-center gap-2 justify-center">
                     {c.name} <VerifiedBadge size={20} />

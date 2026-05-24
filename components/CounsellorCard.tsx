@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Star } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import RatingStars from "@/components/RatingStars";
 import type { Doc } from "@/convex/_generated/dataModel";
 
 function formatOrders(n: number) {
@@ -17,8 +17,8 @@ export default function CounsellorCard({ c, priority = false }: { c: Doc<"counse
         <article className="mx-4 my-3 rounded-2xl bg-white border border-[var(--card-border)] p-4 flex gap-3">
             <Link href={`/dashboard/counsellor/${c.slug}`} className="shrink-0">
                 <Image src={c.portrait} alt={c.name} width={88} height={88} priority={priority} className="rounded-full object-cover h-22 w-22" />
-                <div className="flex justify-center mt-2 gap-0.5 text-amber-400">
-                    {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={12} fill="currentColor" strokeWidth={0} />)}
+                <div className="flex justify-center mt-2">
+                    <RatingStars rating={c.rating} size={12} />
                 </div>
                 <p className="text-[10px] text-zinc-500 text-center mt-0.5">{formatOrders(c.ordersCount)}</p>
             </Link>
