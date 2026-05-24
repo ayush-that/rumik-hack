@@ -81,13 +81,13 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         const mintRes = await fetch("/api/voice/silk-mint", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({ text, counsellorSlug: counsellor.slug }),
         });
         if (!mintRes.ok) {
             console.error("silk-mint failed", await mintRes.text());
             return;
         }
-        const { ws_url, token, tone } = await mintRes.json();
+        const { ws_url, token, model, tone, description } = await mintRes.json();
         if (myGen !== ttsGenRef.current) return; // user interrupted while minting
 
         const ctx = audioCtxRef.current ?? new AudioContext({ sampleRate: 24000 });
@@ -95,7 +95,11 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         if (ctx.state === "suspended") await ctx.resume();
         if (playAtRef.current < ctx.currentTime) playAtRef.current = ctx.currentTime;
 
-        const tonePrefix = text.trimStart().startsWith("[") ? "" : `[${tone || "neutral"}] `;
+        // muga: prefix [tone] tag on the text. mulberry: ignore tones, send description.
+        const isMuga = model === "muga";
+        const synthesisText = isMuga
+            ? (text.trimStart().startsWith("[") ? text : `[${tone || "neutral"}] ${text}`)
+            : text;
 
         const ws = new WebSocket(`${ws_url}?token=${encodeURIComponent(token)}`);
         ws.binaryType = "arraybuffer";
@@ -106,8 +110,10 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                 try { ws.close(); } catch {}
                 return;
             }
-            // Send synthesis frame (per Rumik docs). For muga, only `text` matters.
-            ws.send(JSON.stringify({ text: tonePrefix + text }));
+            // Send synthesis frame per Rumik docs. Mulberry needs `description`.
+            const frame: Record<string, unknown> = { text: synthesisText };
+            if (!isMuga && description) frame.description = description;
+            ws.send(JSON.stringify(frame));
         };
 
         ws.onmessage = (e) => {
@@ -145,7 +151,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         ws.onclose = () => {
             if (ttsWsRef.current === ws) ttsWsRef.current = null;
         };
-    }, [stopPlayback]);
+    }, [stopPlayback, counsellor.slug]);
 
     // ----- LLM turn -----
     const handleUserTurn = useCallback(async (userText: string, opts?: { showInUi?: boolean }) => {
