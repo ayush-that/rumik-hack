@@ -10,12 +10,12 @@ function formatOrders(n: number) {
     return `${n} orders`;
 }
 
-export default function CounsellorCard({ c }: { c: Doc<"counsellors"> }) {
+export default function CounsellorCard({ c, priority = false }: { c: Doc<"counsellors">; priority?: boolean }) {
     const available = c.waitMinutes === 0;
     return (
         <article className="mx-4 my-3 rounded-2xl bg-white border border-[var(--card-border)] p-4 flex gap-3">
             <Link href={`/dashboard/counsellor/${c.slug}`} className="shrink-0">
-                <Image src={c.portrait} alt={c.name} width={88} height={88} className="rounded-full object-cover h-22 w-22" />
+                <Image src={c.portrait} alt={c.name} width={88} height={88} priority={priority} className="rounded-full object-cover h-22 w-22" />
                 <div className="flex justify-center mt-2 gap-0.5 text-zinc-300">
                     {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={12} fill="currentColor" />)}
                 </div>

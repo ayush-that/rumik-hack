@@ -24,7 +24,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {counsellors.length === 0 ? (
                     <p className="text-center text-zinc-500 mt-8">No counsellors match these filters.</p>
                 ) : (
-                    counsellors.map((c) => <CounsellorCard key={c._id} c={c} />)
+                    counsellors.map((c, i) => <CounsellorCard key={c._id} c={c} priority={i === 0} />)
                 )}
             </div>
         </>
