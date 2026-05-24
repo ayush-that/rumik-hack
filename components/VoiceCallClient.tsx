@@ -34,9 +34,11 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
     const startedRef = useRef(false);
     const messagesRef = useRef<ChatMessage[]>([]);
     const dgWsRef = useRef<WebSocket | null>(null);
-    const recorderRef = useRef<MediaRecorder | null>(null);
+    const micCtxRef = useRef<AudioContext | null>(null);
+    const micProcessorRef = useRef<ScriptProcessorNode | null>(null);
+    const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
-    const audioCtxRef = useRef<AudioContext | null>(null);
+    const audioCtxRef = useRef<AudioContext | null>(null); // separate ctx for 24kHz TTS playback
     const ttsWsRef = useRef<WebSocket | null>(null);
     const ttsSourcesRef = useRef<AudioBufferSourceNode[]>([]);
     const playAtRef = useRef(0);
@@ -218,86 +220,97 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
                 if (keyErr || !key) throw new Error(keyErr || "no deepgram key returned");
                 console.log("[voice] dg key OK");
 
-                // 3. Open Deepgram WS
-                //    nova-3 supports multilingual via `language=multi`.
-                //    utterance_end_ms=1000 → server emits a UtteranceEnd event
-                //    after 1s of silence so we know the user is done.
+                // 3. Open Deepgram Flux WS (Hinglish-capable, /v2/listen)
+                //    Flux requires raw PCM linear16 — we set up ScriptProcessor
+                //    below to send that. eot_timeout_ms controls how long Flux
+                //    waits after speech before firing EndOfTurn.
+                const micCtx = new AudioContext();
+                micCtxRef.current = micCtx;
+                const sr = micCtx.sampleRate; // typically 48000
+
                 const params = new URLSearchParams({
-                    model: "nova-3",
-                    language: "multi",
-                    smart_format: "true",
-                    punctuate: "true",
-                    interim_results: "true",
-                    vad_events: "true",
-                    utterance_end_ms: "1000",
-                    endpointing: "300",
+                    model: "flux-general-multi",
+                    encoding: "linear16",
+                    sample_rate: String(sr),
+                    eot_timeout_ms: "1500",
                 });
-                const dgUrl = `wss://api.deepgram.com/v1/listen?${params.toString()}`;
+                // Flux supports repeated language_hint params for multilingual
+                params.append("language_hint", "hi");
+                params.append("language_hint", "en");
+
+                const dgUrl = `wss://api.deepgram.com/v2/listen?${params.toString()}`;
                 const dgWs = new WebSocket(dgUrl, ["token", key]);
                 dgWsRef.current = dgWs;
 
                 let interimBuf = "";
 
                 dgWs.onopen = () => {
-                    console.log("[voice] dg ws open");
+                    console.log("[voice] dg flux ws open", { sampleRate: sr });
                     if (cancelled) {
                         try { dgWs.close(); } catch {}
                         return;
                     }
-                    // 4. Start streaming mic audio (opus container; Deepgram auto-detects)
-                    const recorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
-                    recorderRef.current = recorder;
-                    recorder.ondataavailable = (e) => {
-                        if (e.data.size > 0 && dgWs.readyState === WebSocket.OPEN) {
-                            dgWs.send(e.data);
-                        }
-                    };
-                    recorder.start(250);
 
-                    // Deepgram needs a periodic keepalive on long silences
-                    dgKeepAliveRef.current = window.setInterval(() => {
-                        if (dgWs.readyState === WebSocket.OPEN) {
-                            dgWs.send(JSON.stringify({ type: "KeepAlive" }));
+                    // 4. Stream raw PCM linear16 from mic → Flux
+                    const source = micCtx.createMediaStreamSource(stream);
+                    micSourceRef.current = source;
+                    const processor = micCtx.createScriptProcessor(4096, 1, 1);
+                    micProcessorRef.current = processor;
+                    source.connect(processor);
+                    // Connect to destination so audio actually flows; we mute by routing
+                    // through a gain=0 node so the user doesn't hear themselves echoed.
+                    const mute = micCtx.createGain();
+                    mute.gain.value = 0;
+                    processor.connect(mute);
+                    mute.connect(micCtx.destination);
+
+                    processor.onaudioprocess = (e) => {
+                        if (dgWs.readyState !== WebSocket.OPEN) return;
+                        const f32 = e.inputBuffer.getChannelData(0);
+                        const i16 = new Int16Array(f32.length);
+                        for (let i = 0; i < f32.length; i++) {
+                            const s = Math.max(-1, Math.min(1, f32[i]));
+                            i16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
                         }
-                    }, 8000);
+                        dgWs.send(i16.buffer);
+                    };
 
                     setState("live");
 
                     // 5. Kick off intro turn
-                    // Empty message history + counsellor → the system prompt asks
-                    // for the warm Hinglish greeting.
                     handleUserTurn("Greet the client warmly and ask kya guidance chahiye aaj.");
                 };
 
                 dgWs.onmessage = (e) => {
-                    let msg: { type?: string; channel?: { alternatives?: { transcript?: string }[] }; is_final?: boolean; speech_final?: boolean };
+                    let msg: {
+                        type?: string;
+                        event?: string;
+                        transcript?: string;
+                        words?: { word?: string }[];
+                    };
                     try { msg = JSON.parse(e.data); } catch { return; }
 
-                    if (msg.type === "Results") {
-                        const text = msg.channel?.alternatives?.[0]?.transcript ?? "";
-                        if (!text) return;
-                        if (msg.is_final) {
-                            interimBuf = (interimBuf + " " + text).trim();
-                            // If speech_final, Deepgram thinks utterance done → trigger
-                            if (msg.speech_final) {
-                                const final = interimBuf;
-                                interimBuf = "";
-                                if (final) {
-                                    // User started talking → interrupt any bot audio
-                                    stopPlayback();
-                                    handleUserTurn(final);
-                                }
-                            }
-                        } else {
-                            // Interim: show what we're hearing AND interrupt bot mid-sentence
+                    if (msg.type === "TurnInfo") {
+                        const event = msg.event;
+                        const text = (msg.transcript || "").trim();
+                        if (event === "Update" && text) {
+                            // Interim transcript; show it and interrupt bot audio
                             setLastUserText(text);
                             stopPlayback();
+                            interimBuf = text;
+                        } else if (event === "EndOfTurn" || event === "EagerEndOfTurn") {
+                            const final = (text || interimBuf || "").trim();
+                            interimBuf = "";
+                            if (final) {
+                                stopPlayback();
+                                handleUserTurn(final);
+                            }
+                        } else if (event === "StartOfTurn" || event === "TurnResumed") {
+                            // User started talking — kill bot audio
+                            stopPlayback();
                         }
-                    } else if (msg.type === "UtteranceEnd") {
-                        // Backstop: trigger if endpointing missed it
-                        const final = interimBuf;
-                        interimBuf = "";
-                        if (final) handleUserTurn(final);
+                    } else if (msg.type === "Error") {
+                        console.error("[voice] dg error:", msg);
                     }
                 };
 
@@ -336,10 +349,19 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
                 clearInterval(dgKeepAliveRef.current);
                 dgKeepAliveRef.current = null;
             }
-            if (recorderRef.current && recorderRef.current.state !== "inactive") {
-                try { recorderRef.current.stop(); } catch {}
+            if (micProcessorRef.current) {
+                try { micProcessorRef.current.disconnect(); } catch {}
+                micProcessorRef.current.onaudioprocess = null;
+                micProcessorRef.current = null;
             }
-            recorderRef.current = null;
+            if (micSourceRef.current) {
+                try { micSourceRef.current.disconnect(); } catch {}
+                micSourceRef.current = null;
+            }
+            if (micCtxRef.current) {
+                try { micCtxRef.current.close(); } catch {}
+                micCtxRef.current = null;
+            }
             if (dgWsRef.current) {
                 try { dgWsRef.current.close(); } catch {}
                 dgWsRef.current = null;

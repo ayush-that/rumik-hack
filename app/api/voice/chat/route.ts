@@ -1,5 +1,6 @@
-// LLM brain: OpenRouter → Cerebras → Llama-3.1-8B-Instruct.
-// Takes the full conversation history every turn so the bot remembers context.
+// LLM brain: Google Gemini Flash Lite (direct API, NOT via OpenRouter —
+// the Cerebras-hosted Llama route was hitting 429s).
+// Takes the full conversation history every turn for full context.
 
 import { NextResponse } from "next/server";
 
@@ -48,50 +49,57 @@ function buildSystemPrompt(counsellor: Counsellor | null): string {
 }
 
 export async function POST(req: Request) {
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        return NextResponse.json({ error: "OPENROUTER_API_KEY not configured" }, { status: 500 });
+        return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
     }
+    const model = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 
     const body = await req.json().catch(() => ({}));
     const counsellor: Counsellor | null = body.counsellor ?? null;
     const messages: ChatMessage[] = Array.isArray(body.messages) ? body.messages : [];
 
-    const model = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.1-8b-instruct";
-    const providers = (process.env.OPENROUTER_PROVIDER || "Cerebras")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+    // Gemini wants role="user"/"model" (NOT "assistant") and a separate
+    // systemInstruction outside the contents array.
+    const contents = messages
+        .filter((m) => m.role !== "system")
+        .map((m) => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }],
+        }));
 
-    const fullMessages: ChatMessage[] = [
-        { role: "system", content: buildSystemPrompt(counsellor) },
-        ...messages.filter((m) => m.role !== "system"),
-    ];
-
-    const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            model,
-            provider: { order: providers, allow_fallbacks: false },
-            messages: fullMessages,
-            max_tokens: 256,
+    const reqBody = {
+        systemInstruction: { parts: [{ text: buildSystemPrompt(counsellor) }] },
+        contents,
+        generationConfig: {
             temperature: 0.7,
-        }),
-    });
+            maxOutputTokens: 256,
+        },
+    };
+
+    const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-goog-api-key": apiKey,
+            },
+            body: JSON.stringify(reqBody),
+        },
+    );
 
     if (!r.ok) {
         const text = await r.text();
-        return NextResponse.json({ error: `LLM upstream ${r.status}: ${text.slice(0, 300)}` }, { status: 502 });
+        return NextResponse.json({ error: `Gemini upstream ${r.status}: ${text.slice(0, 300)}` }, { status: 502 });
     }
 
     const data = await r.json();
-    const reply: string = data?.choices?.[0]?.message?.content ?? "";
+    const reply: string =
+        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
+
     if (!reply.trim()) {
-        return NextResponse.json({ error: "Empty LLM reply", raw: data }, { status: 502 });
+        return NextResponse.json({ error: "Empty Gemini reply", raw: data }, { status: 502 });
     }
-    return NextResponse.json({ reply, provider: data?.provider, model: data?.model });
+    return NextResponse.json({ reply, model });
 }
