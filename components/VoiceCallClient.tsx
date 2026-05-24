@@ -23,7 +23,16 @@ interface Counsellor {
     experienceYears: number;
 }
 
-export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor }) {
+export interface UserProfile {
+    displayName: string;
+    gender: "male" | "female" | null;
+    birthDate: string | null;
+    birthTime: string | null;
+    birthTimeUnknown: boolean;
+    birthPlace: string | null;
+}
+
+export default function VoiceCallClient({ counsellor, profile }: { counsellor: Counsellor; profile?: UserProfile }) {
     const router = useRouter();
     const [state, setState] = useState<CallState>("connecting");
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -139,13 +148,13 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
     }, [stopPlayback]);
 
     // ----- LLM turn -----
-    const handleUserTurn = useCallback(async (userText: string) => {
+    const handleUserTurn = useCallback(async (userText: string, opts?: { showInUi?: boolean }) => {
         const trimmed = userText.trim();
         if (!trimmed) return;
 
         // Append to history
         messagesRef.current = [...messagesRef.current, { role: "user", content: trimmed }];
-        setLastUserText(trimmed);
+        if (opts?.showInUi !== false) setLastUserText(trimmed);
         setLastBotText(null);
 
         // Cancel any in-flight chat from a previous (unfinished) turn
@@ -165,6 +174,7 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
                         languages: counsellor.languages,
                         experienceYears: counsellor.experienceYears,
                     },
+                    profile: profile ?? null,
                     messages: messagesRef.current,
                 }),
                 signal: ac.signal,
@@ -184,7 +194,7 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
         } finally {
             if (inFlightChatRef.current === ac) inFlightChatRef.current = null;
         }
-    }, [counsellor, speak]);
+    }, [counsellor, profile, speak]);
 
     // ----- Bootstrap call -----
     useEffect(() => {
@@ -277,8 +287,12 @@ export default function VoiceCallClient({ counsellor }: { counsellor: Counsellor
 
                     setState("live");
 
-                    // 5. Kick off intro turn
-                    handleUserTurn("Greet the client warmly and ask kya guidance chahiye aaj.");
+                    // 5. Kick off intro turn — let the bot greet the (already-known) client.
+                    const firstName = (profile?.displayName ?? "").trim().split(/\s+/)[0];
+                    const kickoff = firstName
+                        ? `Greet ${firstName} warmly using the salutation rule, introduce yourself, and ask kya guidance chahiye aaj.`
+                        : "Greet the client warmly, introduce yourself, and ask kya guidance chahiye aaj.";
+                    handleUserTurn(kickoff, { showInUi: false });
                 };
 
                 dgWs.onmessage = (e) => {

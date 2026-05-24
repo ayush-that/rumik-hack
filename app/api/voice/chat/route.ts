@@ -16,6 +16,34 @@ type Counsellor = {
     experienceYears: number;
 };
 
+type UserProfile = {
+    displayName?: string | null;
+    gender?: "male" | "female" | null;
+    birthDate?: string | null; // YYYY-MM-DD
+    birthTime?: string | null; // HH:MM
+    birthTimeUnknown?: boolean;
+    birthPlace?: string | null;
+};
+
+function computeAge(birthDate?: string | null): number | null {
+    if (!birthDate) return null;
+    const d = new Date(birthDate);
+    if (Number.isNaN(d.getTime())) return null;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age -= 1;
+    return age >= 0 ? age : null;
+}
+
+function pickSalutation(age: number | null, gender?: "male" | "female" | null): string {
+    if (age === null) return "beta";
+    if (age < 25) return "beta";
+    if (age < 40) return gender === "female" ? "behen" : "bhai";
+    if (age < 60) return gender === "female" ? "ji" : "ji";
+    return gender === "female" ? "auntyji" : "uncleji";
+}
+
 const LANGUAGE_RULES =
     "LANGUAGE — STRICT: Reply in Hinglish (Hindi written in Roman/Latin script, naturally mixed " +
     "with English words). Do NOT use Devanagari (देवनागरी) — write Hindi words phonetically. " +
@@ -24,13 +52,39 @@ const LANGUAGE_RULES =
     "'Dekhiye, aapki kundali mein Saturn strong position mein hai, isliye thoda patience rakhna padega.'. " +
     "Keep it warm, casual, conversational — like a real elder counsellor on a phone call.";
 
-function buildSystemPrompt(counsellor: Counsellor | null): string {
+function buildClientBlock(profile: UserProfile | null): string {
+    if (!profile) return "";
+    const age = computeAge(profile.birthDate);
+    const salutation = pickSalutation(age, profile.gender);
+    const lines: string[] = ["CLIENT DETAILS (use these naturally in conversation, do not list them back):"];
+    if (profile.displayName) lines.push(`- Name: ${profile.displayName}`);
+    if (profile.gender) lines.push(`- Gender: ${profile.gender}`);
+    if (profile.birthDate) lines.push(`- Date of birth: ${profile.birthDate}${age !== null ? ` (age ${age})` : ""}`);
+    if (profile.birthTimeUnknown) {
+        lines.push("- Time of birth: unknown (the client doesn't remember; work without it)");
+    } else if (profile.birthTime) {
+        lines.push(`- Time of birth: ${profile.birthTime}`);
+    }
+    if (profile.birthPlace) lines.push(`- Place of birth: ${profile.birthPlace}`);
+    lines.push(
+        `SALUTATION: Address the client as "${salutation}" (age-appropriate). ` +
+            "Do NOT ask for their name, date/time/place of birth — you already have them. " +
+            "Use the first name when you greet them.",
+    );
+    return lines.join("\n");
+}
+
+function buildSystemPrompt(counsellor: Counsellor | null, profile: UserProfile | null): string {
+    const clientBlock = buildClientBlock(profile);
+    const clientSection = clientBlock ? `\n\n${clientBlock}` : "";
+
     if (!counsellor) {
         return (
             "You are a warm, friendly Indian astrology counsellor speaking on a voice call. " +
             "Keep replies short (1-3 sentences). Avoid emojis, lists, or formatting. " +
-            "Ask one clarifying question at a time.\n\n" +
-            LANGUAGE_RULES
+            "Ask one clarifying question at a time." +
+            clientSection +
+            `\n\n${LANGUAGE_RULES}`
         );
     }
     const specialties = counsellor.specialties.join(", ") || "astrology";
@@ -41,10 +95,10 @@ function buildSystemPrompt(counsellor: Counsellor | null): string {
         "Speak warmly and unhurriedly, like an experienced practitioner. " +
         "Keep replies short (1-3 sentences) — this is a voice conversation, not an essay. " +
         "Avoid emojis, lists, or any formatting that doesn't speak naturally. " +
-        "If the client asks for a reading, ask one focused clarifying question first " +
-        "(birth time, birth place, the specific worry) before launching in. " +
-        "Greet the client by introducing yourself by name.\n\n" +
-        LANGUAGE_RULES
+        "If the client asks for a reading, ask about the specific worry first before launching in. " +
+        "Greet the client by introducing yourself by name." +
+        clientSection +
+        `\n\n${LANGUAGE_RULES}`
     );
 }
 
@@ -57,6 +111,7 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const counsellor: Counsellor | null = body.counsellor ?? null;
+    const profile: UserProfile | null = body.profile ?? null;
     const messages: ChatMessage[] = Array.isArray(body.messages) ? body.messages : [];
 
     // Gemini wants role="user"/"model" (NOT "assistant") and a separate
@@ -69,7 +124,7 @@ export async function POST(req: Request) {
         }));
 
     const reqBody = {
-        systemInstruction: { parts: [{ text: buildSystemPrompt(counsellor) }] },
+        systemInstruction: { parts: [{ text: buildSystemPrompt(counsellor, profile) }] },
         contents,
         generationConfig: {
             temperature: 0.7,

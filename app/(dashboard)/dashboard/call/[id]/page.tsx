@@ -1,7 +1,7 @@
 import { fetchAuthQuery } from "@/lib/auth-server";
 import { api } from "@/convex/_generated/api";
 import { notFound } from "next/navigation";
-import VoiceCallClient from "@/components/VoiceCallClient";
+import CallGate from "@/components/CallGate";
 
 export default async function CallPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -9,7 +9,7 @@ export default async function CallPage({ params }: { params: Promise<{ id: strin
     if (!c) notFound();
 
     return (
-        <VoiceCallClient
+        <CallGate
             counsellor={{
                 slug: c.slug,
                 name: c.name,

@@ -1,4 +1,4 @@
-import { internalQuery, mutation } from "./_generated/server"
+import { internalQuery, mutation, query } from "./_generated/server"
 import { api } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -39,4 +39,57 @@ export const getByAuthId = internalQuery({
       .withIndex("by_authId", (q) => q.eq("authId", authId))
       .first();
   },
+});
+
+export const getProfile = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_authId", (q) => q.eq("authId", identity.subject))
+            .first();
+        if (!user) return null;
+        const onboarded = Boolean(user.onboardedAt && user.gender && user.birthDate && user.birthPlace);
+        return {
+            displayName: user.displayName ?? user.name,
+            gender: user.gender ?? null,
+            birthDate: user.birthDate ?? null,
+            birthTime: user.birthTime ?? null,
+            birthTimeUnknown: user.birthTimeUnknown ?? false,
+            birthPlace: user.birthPlace ?? null,
+            onboarded,
+        };
+    },
+});
+
+export const saveProfile = mutation({
+    args: {
+        displayName: v.string(),
+        gender: v.union(v.literal("male"), v.literal("female")),
+        birthDate: v.string(),
+        birthTime: v.optional(v.string()),
+        birthTimeUnknown: v.boolean(),
+        birthPlace: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_authId", (q) => q.eq("authId", identity.subject))
+            .first();
+        if (!user) throw new Error("User row missing — sync first");
+        await ctx.db.patch(user._id, {
+            displayName: args.displayName,
+            gender: args.gender,
+            birthDate: args.birthDate,
+            birthTime: args.birthTimeUnknown ? undefined : args.birthTime,
+            birthTimeUnknown: args.birthTimeUnknown,
+            birthPlace: args.birthPlace,
+            onboardedAt: Date.now(),
+        });
+        return null;
+    },
 });
