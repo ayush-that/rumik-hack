@@ -12,10 +12,11 @@ const STEP_ICONS = [User, Venus, Calendar, Clock, MapPin];
 interface Props {
     counsellorName: string;
     initialName?: string;
+    action?: "chat" | "call";
     onDone: () => void;
 }
 
-export default function OnboardingForm({ counsellorName, initialName, onDone }: Props) {
+export default function OnboardingForm({ counsellorName, initialName, action = "chat", onDone }: Props) {
     const saveProfile = useMutation(api.user.saveProfile);
 
     const [step, setStep] = useState<Step>(0);
@@ -197,7 +198,7 @@ export default function OnboardingForm({ counsellorName, initialName, onDone }: 
                 disabled={!canAdvance || saving}
                 className="mt-6 w-full py-3.5 rounded-full bg-yellow-400 text-zinc-900 font-semibold text-base disabled:opacity-50 active:scale-[0.99] transition-transform"
             >
-                {step === 4 ? (saving ? "Saving…" : `Start chat with ${counsellorName}`) : "Next"}
+                {step === 4 ? (saving ? "Saving…" : `Start ${action} with ${counsellorName}`) : "Next"}
             </button>
         </div>
     );

@@ -52,4 +52,23 @@ export default defineSchema({
         text: v.string(),
         ts: v.number(),
     }).index("by_callId_ts", ["callId", "ts"]),
+
+    chatProfiles: defineTable({
+        userKey: v.string(),
+        counsellorSlug: v.string(),
+        name: v.string(),
+        dob: v.string(),
+        birthPlace: v.string(),
+        birthTime: v.optional(v.string()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    }).index("by_userKey_and_counsellorSlug", ["userKey", "counsellorSlug"]),
+
+    chatMessages: defineTable({
+        userKey: v.string(),
+        counsellorSlug: v.string(),
+        role: v.union(v.literal("user"), v.literal("assistant")),
+        content: v.string(),
+        createdAt: v.number(),
+    }).index("by_userKey_and_counsellorSlug_and_createdAt", ["userKey", "counsellorSlug", "createdAt"]),
 });

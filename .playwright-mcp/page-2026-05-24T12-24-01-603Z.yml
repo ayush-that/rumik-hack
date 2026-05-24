@@ -1,0 +1,22 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - img "Cyrux" [ref=e4]
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - heading "Welcome back" [level=1] [ref=e8]
+        - paragraph [ref=e9]: Sign in to your account to continue
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - text: Email
+          - textbox "Email" [ref=e12]
+        - generic [ref=e13]:
+          - text: Password
+          - textbox "Password" [ref=e14]
+        - button "Sign in" [ref=e15] [cursor=pointer]
+      - paragraph [ref=e16]:
+        - text: Don't have an account?
+        - link "Sign up" [ref=e17] [cursor=pointer]:
+          - /url: /sign-up
+  - button "Open Next.js Dev Tools" [ref=e23] [cursor=pointer]:
+    - img [ref=e24]
+  - alert [ref=e27]

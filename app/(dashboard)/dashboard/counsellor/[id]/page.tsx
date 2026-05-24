@@ -3,7 +3,7 @@ import { api } from "@/convex/_generated/api";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Phone } from "lucide-react";
+import { ArrowLeft, MessageCircle, Phone } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import RatingStars from "@/components/RatingStars";
 
@@ -34,13 +34,22 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                     <span className="text-red-500 font-semibold">₹{c.pricePerMin}/min</span>
                 </p>
             </div>
-            <Link
-                href={`/dashboard/call/${c.slug}`}
-                className={`mt-8 flex items-center justify-center gap-2 w-full py-3 rounded-full font-semibold ${available ? "bg-emerald-500 text-white" : "bg-red-100 text-red-600"}`}
-            >
-                <Phone size={18} />
-                {available ? "Call now" : `Call (wait ~ ${c.waitMinutes}m)`}
-            </Link>
+            <div className="mt-8 grid grid-cols-2 gap-3">
+                <Link
+                    href={`/dashboard/chat?counsellor=${c.slug}`}
+                    className="flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white py-3 font-semibold text-zinc-800"
+                >
+                    <MessageCircle size={18} />
+                    Chat
+                </Link>
+                <Link
+                    href={`/dashboard/call/${c.slug}`}
+                    className={`flex items-center justify-center gap-2 rounded-full py-3 font-semibold ${available ? "bg-emerald-500 text-white" : "bg-red-100 text-red-600"}`}
+                >
+                    <Phone size={18} />
+                    {available ? "Call now" : `Wait ${c.waitMinutes}m`}
+                </Link>
+            </div>
         </div>
     );
 }

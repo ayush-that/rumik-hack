@@ -1,4 +1,4 @@
-import { Button, Html, Head, Body, Heading, Tailwind, pixelBasedPreset, Container, Text, } from "@react-email/components";
+import { Button, Head, Body, Tailwind, pixelBasedPreset, Container, Text } from "@react-email/components";
 
 export default function WelcomeEmail({ name = "Ayush" }: { name: string }) {
   return (
