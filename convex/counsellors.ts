@@ -5,13 +5,24 @@ export const list = query({
     args: {
         category: v.optional(v.string()),
         mode: v.optional(v.union(v.literal("all"), v.literal("celebrity"), v.literal("new"))),
+        q: v.optional(v.string()),
     },
-    handler: async (ctx, { category, mode }) => {
+    handler: async (ctx, { category, mode, q }) => {
         const all = await ctx.db.query("counsellors").collect();
+        const needle = q?.trim().toLowerCase() ?? "";
         return all.filter((c) => {
             if (category && !c.categories.includes(category)) return false;
             if (mode === "celebrity" && !c.isCelebrity) return false;
             if (mode === "new" && !c.isNew) return false;
+            if (needle) {
+                const haystack = [
+                    c.name,
+                    ...c.specialties,
+                    ...c.languages,
+                    ...c.categories,
+                ].join(" ").toLowerCase();
+                if (!haystack.includes(needle)) return false;
+            }
             return true;
         });
     },

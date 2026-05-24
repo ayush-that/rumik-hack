@@ -52,6 +52,9 @@ export const getProfile = query({
             .first();
         if (!user) return null;
         const onboarded = Boolean(user.onboardedAt && user.gender && user.birthDate && user.birthPlace);
+        const profileImageUrl = user.profileImageStorageId
+            ? await ctx.storage.getUrl(user.profileImageStorageId)
+            : user.image ?? null;
         return {
             displayName: user.displayName ?? user.name,
             gender: user.gender ?? null,
@@ -59,8 +62,18 @@ export const getProfile = query({
             birthTime: user.birthTime ?? null,
             birthTimeUnknown: user.birthTimeUnknown ?? false,
             birthPlace: user.birthPlace ?? null,
+            profileImageUrl,
             onboarded,
         };
+    },
+});
+
+export const generateProfileUploadUrl = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+        return await ctx.storage.generateUploadUrl();
     },
 });
 
@@ -72,6 +85,7 @@ export const saveProfile = mutation({
         birthTime: v.optional(v.string()),
         birthTimeUnknown: v.boolean(),
         birthPlace: v.string(),
+        profileImageStorageId: v.optional(v.id("_storage")),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -81,6 +95,20 @@ export const saveProfile = mutation({
             .withIndex("by_authId", (q) => q.eq("authId", identity.subject))
             .first();
         if (!user) throw new Error("User row missing — sync first");
+
+        // If replacing the profile picture, delete the old blob to avoid orphans.
+        if (
+            args.profileImageStorageId &&
+            user.profileImageStorageId &&
+            user.profileImageStorageId !== args.profileImageStorageId
+        ) {
+            try {
+                await ctx.storage.delete(user.profileImageStorageId);
+            } catch (e) {
+                console.warn("failed to delete old profile image", e);
+            }
+        }
+
         await ctx.db.patch(user._id, {
             displayName: args.displayName,
             gender: args.gender,
@@ -88,6 +116,7 @@ export const saveProfile = mutation({
             birthTime: args.birthTimeUnknown ? undefined : args.birthTime,
             birthTimeUnknown: args.birthTimeUnknown,
             birthPlace: args.birthPlace,
+            profileImageStorageId: args.profileImageStorageId ?? user.profileImageStorageId,
             onboardedAt: Date.now(),
         });
         return null;

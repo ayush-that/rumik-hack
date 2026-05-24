@@ -132,8 +132,12 @@ export async function POST(req: Request) {
         },
     };
 
-    const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    // STREAM Gemini's SSE response → emit only text deltas as a plain byte
+    // stream the browser can read incrementally and feed to TTS sentence by
+    // sentence. Big perceived-latency win: bot starts speaking sentence 1
+    // before Gemini has finished generating sentences 2/3.
+    const upstream = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
         {
             method: "POST",
             headers: {
@@ -144,17 +148,60 @@ export async function POST(req: Request) {
         },
     );
 
-    if (!r.ok) {
-        const text = await r.text();
-        return NextResponse.json({ error: `Gemini upstream ${r.status}: ${text.slice(0, 300)}` }, { status: 502 });
+    if (!upstream.ok || !upstream.body) {
+        const text = upstream.body ? await upstream.text() : "no body";
+        return NextResponse.json(
+            { error: `Gemini upstream ${upstream.status}: ${text.slice(0, 300)}` },
+            { status: 502 },
+        );
     }
 
-    const data = await r.json();
-    const reply: string =
-        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
+    const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+            const reader = upstream.body!.getReader();
+            const decoder = new TextDecoder();
+            const encoder = new TextEncoder();
+            let buf = "";
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, { stream: true });
+                    // SSE events end with \n\n
+                    let nl;
+                    while ((nl = buf.indexOf("\n\n")) >= 0) {
+                        const event = buf.slice(0, nl);
+                        buf = buf.slice(nl + 2);
+                        for (const line of event.split("\n")) {
+                            if (!line.startsWith("data: ")) continue;
+                            const json = line.slice(6).trim();
+                            if (!json || json === "[DONE]") continue;
+                            try {
+                                const data = JSON.parse(json);
+                                const text: string =
+                                    data?.candidates?.[0]?.content?.parts
+                                        ?.map((p: { text?: string }) => p.text ?? "")
+                                        .join("") ?? "";
+                                if (text) controller.enqueue(encoder.encode(text));
+                            } catch {
+                                // malformed chunk, ignore
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                controller.error(e);
+                return;
+            }
+            controller.close();
+        },
+    });
 
-    if (!reply.trim()) {
-        return NextResponse.json({ error: "Empty Gemini reply", raw: data }, { status: 502 });
-    }
-    return NextResponse.json({ reply, model });
+    return new Response(stream, {
+        headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-store",
+            "X-Accel-Buffering": "no",
+        },
+    });
 }

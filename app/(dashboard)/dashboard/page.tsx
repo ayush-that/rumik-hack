@@ -4,13 +4,14 @@ import CategoryChips from "@/components/CategoryChips";
 import FilterChips from "@/components/FilterChips";
 import CounsellorCard from "@/components/CounsellorCard";
 
-type SP = { category?: string; mode?: "celebrity" | "new" | "all" };
+type SP = { category?: string; mode?: "celebrity" | "new" | "all"; q?: string };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<SP> }) {
     const sp = await searchParams;
     const counsellors = await fetchAuthQuery(api.counsellors.list, {
         category: sp.category,
         mode: sp.mode === "celebrity" || sp.mode === "new" ? sp.mode : undefined,
+        q: sp.q,
     });
     return (
         <>

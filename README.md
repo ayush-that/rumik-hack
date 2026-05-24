@@ -1,79 +1,59 @@
-# Cyrux Template
+<p align="center">
+  <img src="public/logo.png" alt="Cyrux" width="96" height="96" />
+</p>
 
-Next.js 16 application with Convex backend, better-auth authentication, and shadcn/ui components.
+<h1 align="center">Cyrux</h1>
 
-## Tech Stack
+<p align="center">Call a verified astrologer in minutes. Voice-first, Hinglish, real-time.</p>
 
-- **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS 4
-- **Backend**: Convex
-- **Authentication**: better-auth with @convex-dev/better-auth
-- **UI Components**: shadcn, Radix UI, lucide-react
-- **Email**: React Email
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-000?logo=nextdotjs" />
+  <img src="https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white" />
+  <img src="https://img.shields.io/badge/Convex-backend-EE342F?logo=convex&logoColor=white" />
+  <img src="https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwindcss&logoColor=white" />
+  <img src="https://img.shields.io/badge/license-GPL--3.0-blue" />
+</p>
 
-## Getting Started
+## What it is
 
-### Prerequisites
+A mobile-shaped web app where users pick a counsellor, share their birth chart, and talk to them on a low-latency voice call. STT runs in the browser via Deepgram Flux, the LLM is Gemini Flash Lite, and the voice is Rumik SILK streamed over WebSocket.
 
-- Node.js 18+
-- pnpm
+## Stack
 
-### Installation
+- **Web** — Next.js 16 App Router, React 19, Tailwind 4
+- **Backend** — Convex (DB + functions + auth bridge)
+- **Auth** — better-auth with `@convex-dev/better-auth`
+- **Voice** — Deepgram Flux (STT) · Gemini Flash Lite (LLM) · Rumik SILK (TTS)
+- **Voice agent (legacy)** — Pipecat in `voice-agent/`, kept around but unused by default
+
+## Run it
 
 ```bash
 pnpm install
+pnpm dev   # next + convex in parallel
 ```
 
-### Development
-
-Run both Next.js and Convex dev servers:
-
-```bash
-pnpm dev
-```
-
-Or run separately:
-
-```bash
-pnpm dev:web   # Next.js only
-pnpm dev:convex # Convex only
-```
-
-Open [http://localhost:3000](http://localhost:3000) to view the app.
-
-### Build
-
-```bash
-pnpm build
-```
-
-### Lint
-
-```bash
-pnpm lint
-```
-
-## Project Structure
+Set in `.env.local`:
 
 ```
-app/
-├── (auth)/          # Authentication routes (sign-in, sign-up)
-├── (dashboard)/    # Protected dashboard routes
-├── (public)/       # Public routes (landing, about, terms, privacy)
-├── api/            # API routes
-└── globals.css     # Global styles
-
-convex/
-├── auth.ts         # Authentication handlers
-├── schema.ts       # Database schema
-├── user.ts         # User-related queries/mutations
-├── payments.ts     # Payment logic
-├── dodo.ts         # Dodopayments integration
-└── webhooks.ts    # Webhook handlers
+GEMINI_API_KEY=...
+DEEPGRAM_API_KEY=...
+RUMIK_API_KEY=...
+SITE_URL=http://localhost:3000
 ```
 
-## Features
+First run also pulls Convex env via `npx convex dev`.
 
-- Email/password authentication via better-auth
-- Dashboard with billing page
-- Dodo payments integration
-- Email templates via React Email
+## Layout
+
+```
+app/(auth)        sign-in / sign-up
+app/(dashboard)   home, counsellor pages, call, profile
+app/api/voice     STT / LLM / TTS routes
+convex/           schema, queries, auth, counsellor seed
+voice-agent/      pipecat server (optional)
+```
+
+## License
+
+[GPL-3.0](./LICENSE). See `LICENSE` for the full text.

@@ -72,11 +72,11 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
     }, []);
 
     const speak = useCallback(async (text: string) => {
-        // Cancel any in-flight TTS first (interruption)
-        stopPlayback();
-
-        const myGen = ttsGenRef.current + 1;
-        ttsGenRef.current = myGen;
+        // Capture the current generation token. If stopPlayback() bumps
+        // ttsGen later (user interrupted), we abort. We do NOT call
+        // stopPlayback here — the caller (handleUserTurn) interrupts ONCE
+        // at the start of a turn, then queues each sentence via speak().
+        const myGen = ttsGenRef.current;
 
         const mintRes = await fetch("/api/voice/silk-mint", {
             method: "POST",
@@ -153,7 +153,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         };
     }, [stopPlayback, counsellor.slug]);
 
-    // ----- LLM turn -----
+    // ----- LLM turn (STREAMING) -----
     const handleUserTurn = useCallback(async (userText: string, opts?: { showInUi?: boolean }) => {
         const trimmed = userText.trim();
         if (!trimmed) return;
@@ -161,7 +161,10 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         // Append to history
         messagesRef.current = [...messagesRef.current, { role: "user", content: trimmed }];
         if (opts?.showInUi !== false) setLastUserText(trimmed);
-        setLastBotText(null);
+        setLastBotText("");
+
+        // Interrupt any in-flight TTS from the previous turn once.
+        stopPlayback();
 
         // Cancel any in-flight chat from a previous (unfinished) turn
         if (inFlightChatRef.current) inFlightChatRef.current.abort();
@@ -185,22 +188,68 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                 }),
                 signal: ac.signal,
             });
-            if (!r.ok) {
-                console.error("chat failed", await r.text());
+            if (!r.ok || !r.body) {
+                console.error("chat failed", r.status, await r.text().catch(() => ""));
                 return;
             }
-            const { reply } = await r.json();
-            if (!reply) return;
-            messagesRef.current = [...messagesRef.current, { role: "assistant", content: reply }];
-            setLastBotText(reply);
-            await speak(reply);
+
+            const reader = r.body.getReader();
+            const decoder = new TextDecoder();
+            let fullReply = "";
+            let unspoken = "";
+
+            // Speak whenever we have a complete sentence buffered. The audio
+            // queue chains via Web Audio's scheduling, so sentences play in
+            // order without gaps. First-sentence TTFB drops dramatically.
+            const flushSentence = (sentence: string) => {
+                const s = sentence.trim();
+                if (s) speak(s);
+            };
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                if (!chunk) continue;
+                fullReply += chunk;
+                unspoken += chunk;
+                setLastBotText(fullReply);
+
+                // Find the LAST sentence-ending punctuation in the unspoken buffer.
+                // If we find one followed by whitespace or end, split there.
+                let cut = -1;
+                for (let i = unspoken.length - 1; i >= 0; i--) {
+                    const ch = unspoken[i];
+                    if (ch === "." || ch === "!" || ch === "?") {
+                        // Accept if followed by whitespace, end, or another punct
+                        if (i === unspoken.length - 1 || /\s/.test(unspoken[i + 1])) {
+                            cut = i + 1;
+                            break;
+                        }
+                    }
+                }
+                if (cut > 0) {
+                    const sentence = unspoken.slice(0, cut);
+                    unspoken = unspoken.slice(cut);
+                    flushSentence(sentence);
+                }
+            }
+            // Flush any tail (no terminal punct)
+            if (unspoken.trim()) flushSentence(unspoken);
+
+            if (fullReply.trim()) {
+                messagesRef.current = [
+                    ...messagesRef.current,
+                    { role: "assistant", content: fullReply.trim() },
+                ];
+            }
         } catch (e) {
             if ((e as { name?: string })?.name === "AbortError") return;
             console.error("chat err", e);
         } finally {
             if (inFlightChatRef.current === ac) inFlightChatRef.current = null;
         }
-    }, [counsellor, profile, speak]);
+    }, [counsellor, profile, speak, stopPlayback]);
 
     // ----- Bootstrap call -----
     useEffect(() => {

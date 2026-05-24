@@ -16,6 +16,7 @@ export default defineSchema({
         birthTime: v.optional(v.string()), // HH:MM (24h) or empty/undefined if unknown
         birthTimeUnknown: v.optional(v.boolean()),
         birthPlace: v.optional(v.string()),
+        profileImageStorageId: v.optional(v.id("_storage")),
         onboardedAt: v.optional(v.number()),
     }).index("by_authId", ["authId"]),
 
@@ -34,6 +35,12 @@ export default defineSchema({
         isCelebrity: v.boolean(),
         isNew: v.boolean(),
         categories: v.array(v.string()),
+        tagline: v.optional(v.string()),
+        bio: v.optional(v.string()),
+        signature: v.optional(v.string()),
+        hometown: v.optional(v.string()),
+        region: v.optional(v.string()),
+        personaPrompt: v.optional(v.string()),
     }).index("by_slug", ["slug"]),
 
     calls: defineTable({
