@@ -23,12 +23,12 @@ Run the bot using::
 
 from pipecat.transports.base_transport import TransportParams
 from pipecat.processors.aggregators.llm_response_universal import LLMContextAggregatorPair, LLMUserAggregatorParams
-from pipecat.services.google.llm import GoogleLLMService
+from openrouter_cerebras_llm import OpenRouterCerebrasLLMService
 from loguru import logger
 from dotenv import load_dotenv
 from pipecat.runner.types import SmallWebRTCRunnerArguments
 from pipecat.frames.frames import LLMRunFrame
-from pipecat.services.deepgram.stt import DeepgramSTTService
+from pipecat.services.deepgram.flux.stt import DeepgramFluxSTTService
 from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
 import os
 import aiohttp
@@ -39,6 +39,7 @@ from pipecat.transports.base_transport import BaseTransport
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.audio.vad.silero import SileroVADAnalyzer
+from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
 
 load_dotenv(override=True)
@@ -75,7 +76,12 @@ async def run_bot(transport: BaseTransport, counsellor: dict | None = None):
     logger.info("Starting bot")
 
     # Speech-to-Text service
-    stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
+    stt = DeepgramFluxSTTService(
+        api_key=os.getenv("DEEPGRAM_API_KEY"),
+        settings=DeepgramFluxSTTService.Settings(
+            model="flux-general-en",
+        ),
+    )
 
     # Shared aiohttp session for HTTP-based services
     aiohttp_session = aiohttp.ClientSession()
@@ -95,21 +101,22 @@ async def run_bot(transport: BaseTransport, counsellor: dict | None = None):
 
 
     # LLM service
-    llm = GoogleLLMService(
-        api_key=os.getenv("GOOGLE_API_KEY"),
-        settings=GoogleLLMService.Settings(
-            model=os.getenv("GOOGLE_MODEL", "gemini-flash-latest"),
-            system_instruction=build_system_prompt(counsellor),
+    llm = OpenRouterCerebrasLLMService(
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        providers=[p.strip() for p in os.getenv("OPENROUTER_PROVIDER", "Cerebras").split(",") if p.strip()],
+        settings=OpenRouterCerebrasLLMService.Settings(
+            model=os.getenv("OPENROUTER_MODEL", "z-ai/glm-4.7"),
         ),
     )
 
 
 
     context = LLMContext()
+    context.add_message({"role": "system", "content": build_system_prompt(counsellor)})
     user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
         context,
         user_params=LLMUserAggregatorParams(
-            vad_analyzer=SileroVADAnalyzer(),    ),
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.4)),    ),
     )
 
 
