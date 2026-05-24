@@ -3,7 +3,8 @@ import { api } from "@/convex/_generated/api";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, ArrowLeft, Phone } from "lucide-react";
+import { ArrowLeft, Phone, Star } from "lucide-react";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 export default async function CounsellorDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -17,8 +18,11 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
             </Link>
             <div className="flex flex-col items-center text-center">
                 <Image src={c.portrait} alt={c.name} width={140} height={140} className="rounded-full object-cover h-36 w-36" />
-                <h1 className="mt-3 text-2xl font-bold tracking-tight flex items-center gap-2 justify-center">
-                    {c.name} <BadgeCheck size={20} className="text-emerald-500" />
+                <div className="flex gap-0.5 text-amber-400 mt-3">
+                    {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={16} fill="currentColor" strokeWidth={0} />)}
+                </div>
+                <h1 className="mt-2 text-2xl font-bold tracking-tight flex items-center gap-2 justify-center">
+                    {c.name} <VerifiedBadge size={20} />
                 </h1>
                 <p className="text-zinc-600">{c.specialties.join(" · ")}</p>
                 <p className="text-zinc-600">{c.languages.join(", ")}</p>

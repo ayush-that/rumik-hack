@@ -81,27 +81,40 @@ async def _normalize_request_data(request, call_next):
     return await call_next(request)
 
 
+LANGUAGE_RULES = (
+    "LANGUAGE — STRICT: Reply in Hinglish (Hindi written in Roman/Latin script, "
+    "naturally mixed with English words). Do NOT use Devanagari (देवनागरी) script — "
+    "write Hindi words phonetically in Roman letters. This is how real Indian astrology "
+    "counsellors talk on phone calls. Examples of the right style: "
+    "'Namaste beta, kaisi hain aap aaj?', "
+    "'Aap ki marriage ke baare mein guidance chahiye? Pehle apna janma tithi bataiye.', "
+    "'Dekhiye, aapki kundali mein Saturn strong position mein hai, isliye thoda patience rakhna padega.'. "
+    "Keep it warm, casual, conversational — like a real elder counsellor on a phone call, "
+    "not a textbook. Even when discussing Vedic concepts, use the everyday Hinglish a "
+    "client would understand."
+)
+
+
 def build_system_prompt(counsellor: dict | None) -> str:
     if not counsellor:
         return (
-            "You are a warm, friendly astrology counsellor speaking on a voice call. "
+            "You are a warm, friendly Indian astrology counsellor speaking on a voice call. "
             "Keep replies short (1-3 sentences). Avoid emojis, lists, or formatting. "
-            "Ask one clarifying question at a time."
+            "Ask one clarifying question at a time.\n\n" + LANGUAGE_RULES
         )
     name = counsellor.get("name", "the counsellor")
     specialties = ", ".join(counsellor.get("specialties", [])) or "astrology"
-    languages = ", ".join(counsellor.get("languages", [])) or "English and Hindi"
     exp = counsellor.get("experienceYears", 5)
     return (
         f"You are {name}, an Indian astrology counsellor with {exp} years of experience. "
-        f"You specialise in {specialties}. You speak {languages}. "
+        f"You specialise in {specialties}. "
         "You are on a live voice call with a client who has come for guidance on a personal matter. "
         "Speak warmly and unhurriedly, like an experienced practitioner. "
         "Keep replies short (1-3 sentences) — this is a voice conversation, not an essay. "
         "Avoid emojis, lists, or any formatting that doesn't speak naturally. "
         "If the client asks for a reading, ask one focused clarifying question first "
         "(birth time, birth place, the specific worry) before launching in. "
-        "Greet the client by introducing yourself by name."
+        "Greet the client by introducing yourself by name.\n\n" + LANGUAGE_RULES
     )
 
 
@@ -109,11 +122,12 @@ async def run_bot(transport: BaseTransport, counsellor: dict | None = None):
     """Main bot logic."""
     logger.info("Starting bot")
 
-    # Speech-to-Text service
+    # Speech-to-Text service — multilingual Flux so it transcribes
+    # both Hindi and English (most users will code-mix).
     stt = DeepgramFluxSTTService(
         api_key=os.getenv("DEEPGRAM_API_KEY"),
         settings=DeepgramFluxSTTService.Settings(
-            model="flux-general-en",
+            model="flux-general-multi",
         ),
     )
 
@@ -199,8 +213,11 @@ async def run_bot(transport: BaseTransport, counsellor: dict | None = None):
             return
         intro_sent = True
         intro = (
-            f"Greet the client warmly as {counsellor.get('name')} and ask how you can help them today."
-            if counsellor else "Please introduce yourself."
+            f"Greet the client warmly in Hinglish (Roman script) as {counsellor.get('name')}, "
+            f"introduce yourself by name and your specialty, and ask kya guidance chahiye aaj. "
+            f"Example tone: 'Namaste, main {counsellor.get('name')} hoon, ...'"
+            if counsellor
+            else "Greet the client in Hinglish (Roman script) as a warm astrology counsellor and ask how you can help."
         )
         context.add_message({"role": "user", "content": intro})
         await task.queue_frames([LLMRunFrame()])

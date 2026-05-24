@@ -12,6 +12,9 @@ import {
 } from "@pipecat-ai/client-js";
 import { PipecatClientProvider, PipecatClientAudio } from "@pipecat-ai/client-react";
 import { SmallWebRTCTransport } from "@pipecat-ai/small-webrtc-transport";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 type CallState = "idle" | "connecting" | "connected" | "error";
 
@@ -35,6 +38,12 @@ function VoiceCallInner({ counsellor, client }: Props & { client: PipecatClient 
   const [lastUserText, setLastUserText] = useState<string | null>(null);
   const [lastBotText, setLastBotText] = useState<string | null>(null);
   const startedRef = useRef(false);
+
+  const startCall = useMutation(api.calls.start);
+  const appendTurn = useMutation(api.calls.appendTurn);
+  const endCall = useMutation(api.calls.end);
+  const callIdRef = useRef<Id<"calls"> | null>(null);
+  const botTextRef = useRef<string>("");
 
   const agentUrl =
     process.env.NEXT_PUBLIC_VOICE_AGENT_URL ?? "http://localhost:7860";
@@ -80,19 +89,41 @@ function VoiceCallInner({ counsellor, client }: Props & { client: PipecatClient 
     client.on("userTranscript", (data: TranscriptData) => {
       if (data.final) {
         setLastUserText(data.text);
+        const cid = callIdRef.current;
+        const text = data.text?.trim();
+        if (cid && text) {
+          appendTurn({ callId: cid, role: "user", text }).catch(() => {});
+        }
       }
     });
 
     client.on("botTtsText", (data: BotTTSTextData) => {
       setLastBotText((prev) => (prev ? prev + " " + data.text : data.text));
+      botTextRef.current = botTextRef.current
+        ? botTextRef.current + " " + data.text
+        : data.text;
     });
 
     client.on("botStartedSpeaking", () => {
       setLastBotText(null);
+      botTextRef.current = "";
+    });
+
+    client.on("botStoppedSpeaking", () => {
+      const cid = callIdRef.current;
+      const text = botTextRef.current.trim();
+      botTextRef.current = "";
+      if (cid && text) {
+        appendTurn({ callId: cid, role: "bot", text }).catch(() => {});
+      }
     });
 
     client.on("disconnected", () => {
       setCallState("idle");
+      const cid = callIdRef.current;
+      if (cid) {
+        endCall({ callId: cid }).catch(() => {});
+      }
     });
 
     client.on("deviceError", (err: DeviceError) => {
@@ -103,6 +134,12 @@ function VoiceCallInner({ counsellor, client }: Props & { client: PipecatClient 
       }
       setCallState("error");
     });
+
+    startCall({ counsellorSlug: counsellor.slug })
+      .then((id) => {
+        callIdRef.current = id;
+      })
+      .catch(() => {});
 
     client.connect(connectParams).catch((err: unknown) => {
       startedRef.current = false;
@@ -118,12 +155,16 @@ function VoiceCallInner({ counsellor, client }: Props & { client: PipecatClient 
         setErrorMsg(msg);
       }
       setCallState("error");
+      const cid = callIdRef.current;
+      if (cid) endCall({ callId: cid }).catch(() => {});
     });
 
     return () => {
       client.disconnect().catch(() => {});
+      const cid = callIdRef.current;
+      if (cid) endCall({ callId: cid }).catch(() => {});
     };
-  }, [client, connectParams]);
+  }, [client, connectParams, counsellor.slug, startCall, appendTurn, endCall]);
 
   const handleEnd = useCallback(async () => {
     try {
@@ -131,8 +172,12 @@ function VoiceCallInner({ counsellor, client }: Props & { client: PipecatClient 
     } catch {
       // best-effort
     }
-    router.push(`/dashboard/counsellor/${counsellor.slug}`);
-  }, [client, counsellor.slug, router]);
+    const cid = callIdRef.current;
+    if (cid) {
+      try { await endCall({ callId: cid }); } catch {}
+    }
+    router.push("/dashboard/call");
+  }, [client, endCall, router]);
 
   const stateCaption =
     callState === "connecting"
