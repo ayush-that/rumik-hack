@@ -26,11 +26,11 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     })
 }
 
-// Example function for getting the current user
-// Feel free to edit, omit, etc.
 export const getCurrentUser = query({
     args: {},
     handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
         return authComponent.getAuthUser(ctx);
     },
 });
