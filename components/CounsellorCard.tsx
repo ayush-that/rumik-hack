@@ -23,9 +23,9 @@ export default function CounsellorCard({ c }: { c: Doc<"counsellors"> }) {
             </Link>
 
             <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
                     <h3 className="text-lg font-bold tracking-tight truncate">{c.name}</h3>
-                    <BadgeCheck size={20} className="text-emerald-500 fill-emerald-500/15" />
+                    <BadgeCheck size={18} className="shrink-0 text-emerald-500 fill-emerald-500/15" />
                 </div>
                 <p className="text-sm text-zinc-600 truncate">{c.specialties.join(",  ")}</p>
                 <p className="text-sm text-zinc-600 truncate">{c.languages.join(", ")}</p>
