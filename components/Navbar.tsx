@@ -15,9 +15,6 @@ export default function Navbar({ isAuth }: { isAuth: boolean }) {
                 <Link href="/blog">
                     <li className="hover:underline">Blog</li>
                 </Link>
-                <Link href="/pricing">
-                    <li className="hover:underline">Pricing</li>
-                </Link>
             </ul>
 
             <button>

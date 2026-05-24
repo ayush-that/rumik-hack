@@ -65,33 +65,15 @@ export default function LandingPage({ isAuthenticated }: { isAuthenticated: bool
                     2. Authentication
                 </h2>
                 <p className="text-zinc-300 my-3 text-lg font-medium text-balance tracking-tight">
-                    Add these variables in your convex dashboard to enable social login.
-                </p>
-                <p className="text-zinc-300 my-3 text-lg font-medium text-balance tracking-tight">
-                    if you want to remove a provider just remove the variables and remove the login for that provider button from <code className="bg-zinc-900 p-1 rounded-md">app/(auth)/sign-in/page.tsx</code>
+                    Email/password auth is enabled out of the box. Add these variables in your convex dashboard:
                 </p>
                 <code className="bg-zinc-900  text-muted p-2 rounded-md">
                     SITE_URL=http://localhost:3000 <br />
                     BETTER_AUTH_SECRET=your-secret-key-here <br />
-                    GOOGLE_CLIENT_ID=your-google-client-id <br />
-                    GOOGLE_CLIENT_SECRET=your-google-client-secret <br />
-                    GITHUB_CLIENT_ID=your-github-client-id <br />
-                    GITHUB_CLIENT_SECRET=your-github-client-secret <br />
-                </code>
-                <h2 className="font-semibold  text-muted text-2xl mt-5">
-                    3. Payments
-                </h2>
-                <p className="text-zinc-300 my-3 text-lg font-medium text-balance tracking-tight">
-                    Add these variables in your convex dashboard to enable payments using <a href="https://dodopayments.com" target="_blank" className="text-[#f8721c]">dodopayments</a>.
-                </p>
-                <code className="bg-zinc-900  text-muted p-2 rounded-md">
-                    DODO_PAYMENTS_API_KEY=your-dodo-secret-key <br />
-                    DODO_PAYMENTS_ENVIRONMENT=test_mode <br />
-                    DODO_PAYMENTS_WEBHOOK_SECRET=your-dodo-webhook-secret <br />
                 </code>
 
                 <h2 className="font-semibold  text-muted text-2xl mt-5">
-                    4. All set !
+                    3. All set !
                 </h2>
                 <p className="text-zinc-300 my-3 text-lg font-medium text-balance tracking-tight">
                     Setup complete, you can now start building your application 🎉
