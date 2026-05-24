@@ -10,6 +10,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { PhoneOff } from "lucide-react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 type CallState = "connecting" | "live" | "error";
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -44,8 +47,14 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
     const [lastUserText, setLastUserText] = useState<string | null>(null);
     const [lastBotText, setLastBotText] = useState<string | null>(null);
 
+    const startCall = useMutation(api.calls.start);
+    const appendTurn = useMutation(api.calls.appendTurn);
+    const endCall = useMutation(api.calls.end);
+
     // --- mutable refs (don't trigger re-render) ---
     const startedRef = useRef(false);
+    const callIdRef = useRef<Id<"calls"> | null>(null);
+    const callIdPromiseRef = useRef<Promise<Id<"calls">> | null>(null);
     const messagesRef = useRef<ChatMessage[]>([]);
     const dgWsRef = useRef<WebSocket | null>(null);
     const micCtxRef = useRef<AudioContext | null>(null);
@@ -158,6 +167,15 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         };
     }, [stopPlayback, counsellor.slug]);
 
+    const ensureCallStarted = useCallback(async (): Promise<Id<"calls">> => {
+        if (callIdRef.current) return callIdRef.current;
+        if (!callIdPromiseRef.current) {
+            callIdPromiseRef.current = startCall({ counsellorSlug: counsellor.slug })
+                .then((id) => { callIdRef.current = id; return id; });
+        }
+        return callIdPromiseRef.current;
+    }, [startCall, counsellor.slug]);
+
     // ----- LLM turn (single-shot non-streaming — reverted from streaming) -----
     const handleUserTurn = useCallback(async (userText: string, opts?: { showInUi?: boolean }) => {
         const trimmed = userText.trim();
@@ -167,6 +185,13 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         messagesRef.current = [...messagesRef.current, { role: "user", content: trimmed }];
         if (opts?.showInUi !== false) setLastUserText(trimmed);
         setLastBotText(null);
+
+        // Persist user turn (skip the synthetic kickoff prompt)
+        if (opts?.showInUi !== false) {
+            ensureCallStarted()
+                .then((id) => appendTurn({ callId: id, role: "user", text: trimmed }))
+                .catch((e) => console.error("[voice] persist user turn failed", e));
+        }
 
         // Cancel any in-flight chat from a previous (unfinished) turn
         if (inFlightChatRef.current) inFlightChatRef.current.abort();
@@ -203,6 +228,9 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
             if (!reply) return;
             messagesRef.current = [...messagesRef.current, { role: "assistant", content: reply }];
             setLastBotText(reply);
+            ensureCallStarted()
+                .then((id) => appendTurn({ callId: id, role: "bot", text: reply }))
+                .catch((e) => console.error("[voice] persist bot turn failed", e));
             await speak(reply);
         } catch (e) {
             if ((e as { name?: string })?.name === "AbortError") return;
@@ -210,7 +238,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         } finally {
             if (inFlightChatRef.current === ac) inFlightChatRef.current = null;
         }
-    }, [counsellor, profile, speak]);
+    }, [counsellor, profile, speak, appendTurn, ensureCallStarted]);
 
     // ----- Bootstrap call -----
     useEffect(() => {
@@ -404,12 +432,20 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                 try { audioCtxRef.current.close(); } catch {}
                 audioCtxRef.current = null;
             }
+            const id = callIdRef.current;
+            if (id) {
+                endCall({ callId: id }).catch((e) => console.error("[voice] end call (cleanup) failed", e));
+            }
         };
-    }, [handleUserTurn, profile?.displayName, stopPlayback]);
+    }, [handleUserTurn, profile?.displayName, stopPlayback, endCall]);
 
     const handleEnd = useCallback(() => {
+        const id = callIdRef.current;
+        if (id) {
+            endCall({ callId: id }).catch((e) => console.error("[voice] end call failed", e));
+        }
         router.push(`/dashboard/counsellor/${counsellor.slug}`);
-    }, [router, counsellor.slug]);
+    }, [router, counsellor.slug, endCall]);
 
     const stateCaption =
         state === "connecting" ? "Connecting…" :
@@ -417,7 +453,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         (errorMsg ?? "Error");
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+        <div className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col items-center justify-center overflow-hidden px-6 py-4 text-center">
             <Image
                 src={counsellor.portrait}
                 alt={counsellor.name}
@@ -452,17 +488,17 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
             )}
 
             {state === "live" && (
-                <div className="mt-6 w-full max-w-sm space-y-2">
+                <div className="mt-6 max-h-[34dvh] min-h-0 w-full max-w-sm space-y-2 overflow-hidden">
                     {lastUserText && (
                         <div className="flex justify-end">
-                            <div className="bg-zinc-100 rounded-2xl rounded-br-sm px-4 py-2 text-sm text-zinc-700 max-w-[80%] break-words">
+                            <div className="bg-zinc-100 rounded-2xl rounded-br-sm px-4 py-2 text-sm text-zinc-700 max-w-[80%] break-words text-left">
                                 {lastUserText}
                             </div>
                         </div>
                     )}
                     {lastBotText && (
                         <div className="flex justify-start">
-                            <div className="bg-emerald-50 rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-emerald-900 max-w-[80%] break-words">
+                            <div className="bg-emerald-50 rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-emerald-900 max-w-[80%] break-words text-left">
                                 {lastBotText}
                             </div>
                         </div>
@@ -472,7 +508,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
 
             <button
                 onClick={handleEnd}
-                className="mt-12 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-red-500 text-white font-semibold active:scale-95 transition-transform"
+                className="mt-8 inline-flex shrink-0 items-center gap-2 rounded-full bg-red-500 px-6 py-3 font-semibold text-white transition-transform active:scale-95"
             >
                 <PhoneOff size={18} /> End
             </button>
