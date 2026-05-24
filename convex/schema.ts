@@ -9,6 +9,14 @@ export default defineSchema({
         dodoCustomerId: v.optional(v.string()),
         image: v.optional(v.string()),
         createdAt: v.number(),
+        // Onboarding / astrology profile
+        displayName: v.optional(v.string()),
+        gender: v.optional(v.union(v.literal("male"), v.literal("female"))),
+        birthDate: v.optional(v.string()), // YYYY-MM-DD
+        birthTime: v.optional(v.string()), // HH:MM (24h) or empty/undefined if unknown
+        birthTimeUnknown: v.optional(v.boolean()),
+        birthPlace: v.optional(v.string()),
+        onboardedAt: v.optional(v.number()),
     }).index("by_authId", ["authId"]),
 
     counsellors: defineTable({

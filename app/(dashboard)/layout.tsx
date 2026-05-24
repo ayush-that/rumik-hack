@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return (
         <ClientAuthBoundary>
             <DashboardHeader />
-            <main className="mx-auto max-w-[480px] min-h-screen bg-[var(--background)] border-x border-[var(--card-border)] pt-16 pb-20">
+            <main className="mx-auto w-full max-w-[480px] min-h-screen bg-[var(--background)] border-x border-[var(--card-border)] pt-16 pb-20">
                 {children}
             </main>
             <BottomNav />
