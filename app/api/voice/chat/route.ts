@@ -14,6 +14,11 @@ type Counsellor = {
     specialties: string[];
     languages: string[];
     experienceYears: number;
+    tagline?: string | null;
+    signature?: string | null;
+    hometown?: string | null;
+    region?: string | null;
+    personaPrompt?: string | null;
 };
 
 type UserProfile = {
@@ -88,15 +93,31 @@ function buildSystemPrompt(counsellor: Counsellor | null, profile: UserProfile |
         );
     }
     const specialties = counsellor.specialties.join(", ") || "astrology";
+    const bgBits: string[] = [];
+    if (counsellor.hometown) bgBits.push(`from ${counsellor.hometown}`);
+    if (counsellor.region) bgBits.push(`(${counsellor.region})`);
+    const backgroundLine = bgBits.length ? ` You are ${bgBits.join(" ")}.` : "";
+    const taglineLine = counsellor.tagline ? ` Your public tagline: "${counsellor.tagline}".` : "";
+    const signatureLine = counsellor.signature
+        ? ` SIGNATURE PHRASE — you slip this in once per conversation when it fits naturally: "${counsellor.signature}". Do NOT force it; only use it when it lands.`
+        : "";
+    const personaBlock = counsellor.personaPrompt
+        ? `\n\nPERSONA — this is the voice you MUST speak in:\n${counsellor.personaPrompt}`
+        : "";
+
     return (
         `You are ${counsellor.name}, an Indian astrology counsellor with ${counsellor.experienceYears} years of experience. ` +
-        `You specialise in ${specialties}. ` +
-        "You are on a live voice call with a client who has come for guidance on a personal matter. " +
+        `You specialise in ${specialties}.` +
+        backgroundLine +
+        taglineLine +
+        " You are on a live voice call with a client who has come for guidance on a personal matter. " +
         "Speak warmly and unhurriedly, like an experienced practitioner. " +
         "Keep replies short (1-3 sentences) — this is a voice conversation, not an essay. " +
         "Avoid emojis, lists, or any formatting that doesn't speak naturally. " +
         "If the client asks for a reading, ask about the specific worry first before launching in. " +
         "Greet the client by introducing yourself by name." +
+        signatureLine +
+        personaBlock +
         clientSection +
         `\n\n${LANGUAGE_RULES}`
     );
@@ -132,12 +153,8 @@ export async function POST(req: Request) {
         },
     };
 
-    // STREAM Gemini's SSE response → emit only text deltas as a plain byte
-    // stream the browser can read incrementally and feed to TTS sentence by
-    // sentence. Big perceived-latency win: bot starts speaking sentence 1
-    // before Gemini has finished generating sentences 2/3.
-    const upstream = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
+    const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
             method: "POST",
             headers: {
@@ -148,60 +165,22 @@ export async function POST(req: Request) {
         },
     );
 
-    if (!upstream.ok || !upstream.body) {
-        const text = upstream.body ? await upstream.text() : "no body";
+    if (!r.ok) {
+        const text = await r.text();
         return NextResponse.json(
-            { error: `Gemini upstream ${upstream.status}: ${text.slice(0, 300)}` },
+            { error: `Gemini upstream ${r.status}: ${text.slice(0, 300)}` },
             { status: 502 },
         );
     }
 
-    const stream = new ReadableStream<Uint8Array>({
-        async start(controller) {
-            const reader = upstream.body!.getReader();
-            const decoder = new TextDecoder();
-            const encoder = new TextEncoder();
-            let buf = "";
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buf += decoder.decode(value, { stream: true });
-                    // SSE events end with \n\n
-                    let nl;
-                    while ((nl = buf.indexOf("\n\n")) >= 0) {
-                        const event = buf.slice(0, nl);
-                        buf = buf.slice(nl + 2);
-                        for (const line of event.split("\n")) {
-                            if (!line.startsWith("data: ")) continue;
-                            const json = line.slice(6).trim();
-                            if (!json || json === "[DONE]") continue;
-                            try {
-                                const data = JSON.parse(json);
-                                const text: string =
-                                    data?.candidates?.[0]?.content?.parts
-                                        ?.map((p: { text?: string }) => p.text ?? "")
-                                        .join("") ?? "";
-                                if (text) controller.enqueue(encoder.encode(text));
-                            } catch {
-                                // malformed chunk, ignore
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                controller.error(e);
-                return;
-            }
-            controller.close();
-        },
-    });
+    const data = await r.json();
+    const reply: string =
+        data?.candidates?.[0]?.content?.parts
+            ?.map((p: { text?: string }) => p.text || "")
+            .join("") || "";
 
-    return new Response(stream, {
-        headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Cache-Control": "no-store",
-            "X-Accel-Buffering": "no",
-        },
-    });
+    if (!reply.trim()) {
+        return NextResponse.json({ error: "Empty Gemini reply", raw: data }, { status: 502 });
+    }
+    return NextResponse.json({ reply, model });
 }

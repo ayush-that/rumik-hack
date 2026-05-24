@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import { MapPin } from "lucide-react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import RatingStars from "@/components/RatingStars";
 import type { Doc } from "@/convex/_generated/dataModel";
 
 function formatOrders(n: number) {
-    if (n >= 10000) return "10k+ orders";
-    if (n >= 5000)  return "5k+ orders";
+    if (n >= 10000) return `${Math.floor(n / 1000)}k+ orders`;
     if (n >= 1000)  return `${Math.floor(n / 1000)}k+ orders`;
     return `${n} orders`;
 }
@@ -28,10 +28,19 @@ export default function CounsellorCard({ c, priority = false }: { c: Doc<"counse
                     <h3 className="text-lg font-bold tracking-tight truncate">{c.name}</h3>
                     <VerifiedBadge size={18} className="shrink-0" />
                 </div>
-                <p className="text-sm text-zinc-600 truncate">{c.specialties.join(",  ")}</p>
-                <p className="text-sm text-zinc-600 truncate">{c.languages.join(", ")}</p>
-                <p className="text-sm text-zinc-600">Exp- {c.experienceYears} Years</p>
-                <p className="text-sm">
+                {c.tagline && (
+                    <p className="text-xs italic text-zinc-500 line-clamp-2 mt-0.5">&ldquo;{c.tagline}&rdquo;</p>
+                )}
+                <p className="text-sm text-zinc-600 truncate mt-1">{c.specialties.join(" · ")}</p>
+                <div className="flex items-center gap-2 text-xs text-zinc-500 mt-0.5">
+                    <span className="truncate">{c.languages.join(", ")}</span>
+                </div>
+                {c.hometown && (
+                    <p className="flex items-center gap-1 text-xs text-zinc-500 mt-0.5 truncate">
+                        <MapPin size={11} className="shrink-0" /> {c.hometown} · {c.experienceYears}y
+                    </p>
+                )}
+                <p className="text-sm mt-1">
                     <span className="text-zinc-400 line-through">₹{c.originalPricePerMin}</span>{" "}
                     <span className="text-red-500 font-semibold">₹{c.pricePerMin}/min</span>
                 </p>

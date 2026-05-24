@@ -13,6 +13,11 @@ interface Counsellor {
     specialties: string[];
     languages: string[];
     experienceYears: number;
+    tagline?: string | null;
+    signature?: string | null;
+    hometown?: string | null;
+    region?: string | null;
+    personaPrompt?: string | null;
 }
 
 export default function CallGate({ counsellor }: { counsellor: Counsellor }) {

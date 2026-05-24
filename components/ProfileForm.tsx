@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, LogOut } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
+import { signOut } from "@/lib/auth-client";
 
 interface Props {
     email: string;
@@ -167,6 +168,14 @@ export default function ProfileForm({ email, initial }: Props) {
                 className="mt-8 w-full py-3.5 rounded-full bg-yellow-400 text-zinc-900 font-semibold text-base disabled:opacity-50 active:scale-[0.99] transition-transform inline-flex items-center justify-center gap-2"
             >
                 {saving ? "Saving…" : savedAt ? (<><Check size={18} /> Saved</>) : "Save changes"}
+            </button>
+
+            <button
+                type="button"
+                onClick={async () => { await signOut(); router.push("/sign-in"); }}
+                className="mt-3 w-full py-3.5 rounded-full border border-red-300 text-red-600 font-semibold text-base inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
+            >
+                <LogOut size={18} /> Log out
             </button>
         </form>
     );

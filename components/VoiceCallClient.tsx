@@ -21,6 +21,11 @@ interface Counsellor {
     specialties: string[];
     languages: string[];
     experienceYears: number;
+    tagline?: string | null;
+    signature?: string | null;
+    hometown?: string | null;
+    region?: string | null;
+    personaPrompt?: string | null;
 }
 
 export interface UserProfile {
@@ -72,11 +77,11 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
     }, []);
 
     const speak = useCallback(async (text: string) => {
-        // Capture the current generation token. If stopPlayback() bumps
-        // ttsGen later (user interrupted), we abort. We do NOT call
-        // stopPlayback here — the caller (handleUserTurn) interrupts ONCE
-        // at the start of a turn, then queues each sentence via speak().
-        const myGen = ttsGenRef.current;
+        // Cancel any in-flight TTS first (interruption)
+        stopPlayback();
+
+        const myGen = ttsGenRef.current + 1;
+        ttsGenRef.current = myGen;
 
         const mintRes = await fetch("/api/voice/silk-mint", {
             method: "POST",
@@ -153,7 +158,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         };
     }, [stopPlayback, counsellor.slug]);
 
-    // ----- LLM turn (STREAMING) -----
+    // ----- LLM turn (single-shot non-streaming — reverted from streaming) -----
     const handleUserTurn = useCallback(async (userText: string, opts?: { showInUi?: boolean }) => {
         const trimmed = userText.trim();
         if (!trimmed) return;
@@ -161,10 +166,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         // Append to history
         messagesRef.current = [...messagesRef.current, { role: "user", content: trimmed }];
         if (opts?.showInUi !== false) setLastUserText(trimmed);
-        setLastBotText("");
-
-        // Interrupt any in-flight TTS from the previous turn once.
-        stopPlayback();
+        setLastBotText(null);
 
         // Cancel any in-flight chat from a previous (unfinished) turn
         if (inFlightChatRef.current) inFlightChatRef.current.abort();
@@ -182,74 +184,33 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                         specialties: counsellor.specialties,
                         languages: counsellor.languages,
                         experienceYears: counsellor.experienceYears,
+                        tagline: counsellor.tagline ?? null,
+                        signature: counsellor.signature ?? null,
+                        hometown: counsellor.hometown ?? null,
+                        region: counsellor.region ?? null,
+                        personaPrompt: counsellor.personaPrompt ?? null,
                     },
                     profile: profile ?? null,
                     messages: messagesRef.current,
                 }),
                 signal: ac.signal,
             });
-            if (!r.ok || !r.body) {
-                console.error("chat failed", r.status, await r.text().catch(() => ""));
+            if (!r.ok) {
+                console.error("chat failed", await r.text());
                 return;
             }
-
-            const reader = r.body.getReader();
-            const decoder = new TextDecoder();
-            let fullReply = "";
-            let unspoken = "";
-
-            // Speak whenever we have a complete sentence buffered. The audio
-            // queue chains via Web Audio's scheduling, so sentences play in
-            // order without gaps. First-sentence TTFB drops dramatically.
-            const flushSentence = (sentence: string) => {
-                const s = sentence.trim();
-                if (s) speak(s);
-            };
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const chunk = decoder.decode(value, { stream: true });
-                if (!chunk) continue;
-                fullReply += chunk;
-                unspoken += chunk;
-                setLastBotText(fullReply);
-
-                // Find the LAST sentence-ending punctuation in the unspoken buffer.
-                // If we find one followed by whitespace or end, split there.
-                let cut = -1;
-                for (let i = unspoken.length - 1; i >= 0; i--) {
-                    const ch = unspoken[i];
-                    if (ch === "." || ch === "!" || ch === "?") {
-                        // Accept if followed by whitespace, end, or another punct
-                        if (i === unspoken.length - 1 || /\s/.test(unspoken[i + 1])) {
-                            cut = i + 1;
-                            break;
-                        }
-                    }
-                }
-                if (cut > 0) {
-                    const sentence = unspoken.slice(0, cut);
-                    unspoken = unspoken.slice(cut);
-                    flushSentence(sentence);
-                }
-            }
-            // Flush any tail (no terminal punct)
-            if (unspoken.trim()) flushSentence(unspoken);
-
-            if (fullReply.trim()) {
-                messagesRef.current = [
-                    ...messagesRef.current,
-                    { role: "assistant", content: fullReply.trim() },
-                ];
-            }
+            const { reply } = await r.json();
+            if (!reply) return;
+            messagesRef.current = [...messagesRef.current, { role: "assistant", content: reply }];
+            setLastBotText(reply);
+            await speak(reply);
         } catch (e) {
             if ((e as { name?: string })?.name === "AbortError") return;
             console.error("chat err", e);
         } finally {
             if (inFlightChatRef.current === ac) inFlightChatRef.current = null;
         }
-    }, [counsellor, profile, speak, stopPlayback]);
+    }, [counsellor, profile, speak]);
 
     // ----- Bootstrap call -----
     useEffect(() => {
@@ -493,13 +454,17 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
             {state === "live" && (
                 <div className="mt-6 w-full max-w-sm space-y-2">
                     {lastUserText && (
-                        <div className="bg-zinc-100 rounded-2xl rounded-br-sm px-4 py-2 text-sm text-zinc-700 ml-auto max-w-[80%] text-right">
-                            {lastUserText}
+                        <div className="flex justify-end">
+                            <div className="bg-zinc-100 rounded-2xl rounded-br-sm px-4 py-2 text-sm text-zinc-700 max-w-[80%] break-words">
+                                {lastUserText}
+                            </div>
                         </div>
                     )}
                     {lastBotText && (
-                        <div className="bg-emerald-50 rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-emerald-900 max-w-[80%] text-left">
-                            {lastBotText}
+                        <div className="flex justify-start">
+                            <div className="bg-emerald-50 rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-emerald-900 max-w-[80%] break-words">
+                                {lastBotText}
+                            </div>
                         </div>
                     )}
                 </div>

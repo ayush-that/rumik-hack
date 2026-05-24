@@ -17,6 +17,11 @@ export default async function CallPage({ params }: { params: Promise<{ id: strin
                 specialties: c.specialties,
                 languages: c.languages,
                 experienceYears: c.experienceYears,
+                tagline: c.tagline ?? null,
+                signature: c.signature ?? null,
+                hometown: c.hometown ?? null,
+                region: c.region ?? null,
+                personaPrompt: c.personaPrompt ?? null,
             }}
         />
     );

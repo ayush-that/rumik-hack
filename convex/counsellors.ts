@@ -45,6 +45,12 @@ export const seed = mutation({
             experienceYears: v.number(), rating: v.number(), ordersCount: v.number(),
             pricePerMin: v.number(), originalPricePerMin: v.number(), waitMinutes: v.number(),
             isCelebrity: v.boolean(), isNew: v.boolean(), categories: v.array(v.string()),
+            tagline: v.optional(v.string()),
+            bio: v.optional(v.string()),
+            signature: v.optional(v.string()),
+            hometown: v.optional(v.string()),
+            region: v.optional(v.string()),
+            personaPrompt: v.optional(v.string()),
         })),
     },
     handler: async (ctx, { records }) => {
