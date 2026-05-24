@@ -18,13 +18,13 @@ export default function WelcomeEmail({ name = "Ayush" }: { name: string }) {
       <Body>
         <Container className="mx-auto py-5 pb-12">
           <Text className="text-center font-sans font-bold text-4xl tracking-tighter py-5">
-            Welcome to Cyrux
+            Welcome to Tara
           </Text>
           <Text className="font-sans text-xl tracking-tight">
             Hi {name},
           </Text>
           <Text className="font-sans text-xl tracking-tight">
-            Welcome to cyrux community, the production ready nexjs-convex template with auth, database and payment integration already covered for you.
+            Welcome to Tara — call or chat with a verified astrologer in minutes.
           </Text>
           <Text className="font-sans text-xl tracking-tight">
             You can get started by reading the docs.
@@ -37,7 +37,7 @@ export default function WelcomeEmail({ name = "Ayush" }: { name: string }) {
           </Button>
           <Text className="font-sans mt-10 text-xl tracking-tight">
             Best, <br />
-            Ayush (cyrux.in)
+            Team Tara
           </Text>
         </Container>
       </Body>
