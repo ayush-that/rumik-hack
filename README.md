@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="public/logo.png" alt="Cyrux" width="96" height="96" />
+  <img src="public/logo.png" alt="Tara" width="96" height="96" />
 </p>
 
-<h1 align="center">Cyrux</h1>
+<h1 align="center">Tara</h1>
 
-<p align="center">Call a verified astrologer in minutes. Voice-first, Hinglish, real-time.</p>
+<p align="center">Call or chat with a verified astrologer in minutes. Voice-first, Hinglish, real-time.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-16-000?logo=nextdotjs" />
@@ -16,7 +16,7 @@
 
 ## What it is
 
-A mobile-shaped web app where users pick a counsellor, share their birth chart, and talk to them on a low-latency voice call. STT runs in the browser via Deepgram Flux, the LLM is Gemini Flash Lite, and the voice is Rumik SILK streamed over WebSocket.
+A platform where users pick a counsellor, share their birth chart, and either start a low-latency voice call or a text chat. STT runs in the browser via Deepgram Flux, the LLM is Gemini, and the voice is Rumik SILK streamed over WebSocket.
 
 ## Stack
 
@@ -24,6 +24,7 @@ A mobile-shaped web app where users pick a counsellor, share their birth chart, 
 - **Backend** — Convex (DB + functions + auth bridge)
 - **Auth** — better-auth with `@convex-dev/better-auth`
 - **Voice** — Deepgram Flux (STT) · Gemini Flash Lite (LLM) · Rumik SILK (TTS)
+- **Chat** — Gemini 2.5 Flash, persisted in Convex
 - **Voice agent (legacy)** — Pipecat in `voice-agent/`, kept around but unused by default
 
 ## Run it
@@ -36,9 +37,9 @@ pnpm dev   # next + convex in parallel
 Set in `.env.local`:
 
 ```
-GEMINI_API_KEY=...
+GEMINI_API_KEY=...        # or GOOGLE_API_KEY
 DEEPGRAM_API_KEY=...
-RUMIK_API_KEY=...
+RUMIK_API_KEY=...         # or SILK_API_KEY
 SITE_URL=http://localhost:3000
 ```
 
@@ -48,9 +49,10 @@ First run also pulls Convex env via `npx convex dev`.
 
 ```
 app/(auth)        sign-in / sign-up
-app/(dashboard)   home, counsellor pages, call, profile
+app/(dashboard)   home, counsellor pages, call, chat, profile
 app/api/voice     STT / LLM / TTS routes
-convex/           schema, queries, auth, counsellor seed
+app/api/ai-chat   text-chat endpoint
+convex/           schema, queries, auth, counsellor seed, chat
 voice-agent/      pipecat server (optional)
 ```
 

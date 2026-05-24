@@ -1,6 +1,7 @@
 import { fetchAuthQuery } from "@/lib/auth-server";
 import { api } from "@/convex/_generated/api";
 import ChatGate from "@/components/ChatGate";
+import ChatInbox from "@/components/ChatInbox";
 import { type ChatCounsellor } from "@/components/AiChatClient";
 
 type SP = { counsellor?: string };
@@ -16,6 +17,10 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
         languages: c.languages,
         experienceYears: c.experienceYears,
     }));
+
+    if (!sp.counsellor) {
+        return <ChatInbox counsellors={chatCounsellors} />;
+    }
 
     return <ChatGate counsellors={chatCounsellors} initialSlug={sp.counsellor} />;
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
+  ArrowLeft,
   CheckCheck,
   Loader2,
   Mic,
@@ -64,11 +65,21 @@ function firstName(profile: ChatProfile) {
   return profile.displayName.trim().split(/\s+/)[0] || profile.displayName;
 }
 
+// Voice note when the reply is meaningfully long: either ≥320 chars, or 3+ sentences.
+const VOICE_NOTE_MIN_CHARS = 320;
+const VOICE_NOTE_MIN_SENTENCES = 3;
+function assistantKindFor(text: string): "text" | "voice" {
+  const trimmed = text.trim();
+  if (trimmed.length >= VOICE_NOTE_MIN_CHARS) return "voice";
+  const sentences = trimmed.split(/[.!?]+\s/).filter((s) => s.trim().length > 0);
+  return sentences.length >= VOICE_NOTE_MIN_SENTENCES ? "voice" : "text";
+}
+
 function greetingFor(counsellor: ChatCounsellor, profile: ChatProfile): Message {
   return {
     id: `intro-${counsellor.slug}`,
     role: "assistant",
-    kind: "voice",
+    kind: "text",
     createdAt: Date.now(),
     content: `Namaste ${firstName(profile)}, I am ${counsellor.name}. I have your birth details with me, so tell me what is on your mind today and I will guide you step by step.`,
   };
@@ -158,9 +169,13 @@ export default function AiChatClient({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaChunksRef = useRef<Blob[]>([]);
   const audioUrlsRef = useRef<Set<string>>(new Set());
+  const playGenRef = useRef(0);
 
   const stopAudio = useCallback(() => {
-    audioRef.current?.pause();
+    playGenRef.current += 1;
+    if (audioRef.current) {
+      try { audioRef.current.pause(); } catch {}
+    }
     audioRef.current = null;
     setPlayingId(null);
   }, []);
@@ -203,7 +218,7 @@ export default function AiChatClient({
     const savedMessages = session.messages.map((message) => ({
       id: message._id,
       role: message.role,
-      kind: message.role === "assistant" ? "voice" as const : "text" as const,
+      kind: message.role === "assistant" ? assistantKindFor(message.content) : "text" as const,
       content: message.content,
       createdAt: message.createdAt,
     }));
@@ -267,17 +282,25 @@ export default function AiChatClient({
       return;
     }
 
+    stopAudio();
+    const myGen = playGenRef.current;
+
     try {
-      stopAudio();
       const url = audioNotes[message.id]?.url ?? await synthesizeVoiceNote(message.content, message.id);
+      if (myGen !== playGenRef.current) return;
       const audio = new Audio(url);
       audioRef.current = audio;
       setPlayingId(message.id);
-      audio.onended = stopAudio;
-      audio.onerror = stopAudio;
+      audio.onended = () => { if (myGen === playGenRef.current) stopAudio(); };
+      audio.onerror = () => { if (myGen === playGenRef.current) stopAudio(); };
       await audio.play();
+      if (myGen !== playGenRef.current) {
+        try { audio.pause(); } catch {}
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Audio playback failed.");
+      if (myGen === playGenRef.current) {
+        setError(err instanceof Error ? err.message : "Audio playback failed.");
+      }
     }
   }
 
@@ -303,7 +326,7 @@ export default function AiChatClient({
 
   async function sendMessage(value = input, options?: { kind?: "text" | "voice"; audioUrl?: string | null }) {
     const text = value.trim();
-    if (!text || isSending) return;
+    if (!text) return;
 
     setError(null);
     setInput("");
@@ -325,8 +348,13 @@ export default function AiChatClient({
       }));
     }
 
-    const nextMessages = [...messages, userMessage];
-    setMessages(nextMessages);
+    // Functional setter so back-to-back sends don't lose the previous one
+    // (stale-closure race). We grab the post-append snapshot for the API.
+    let nextMessages: Message[] = [];
+    setMessages((current) => {
+      nextMessages = [...current, userMessage];
+      return nextMessages;
+    });
     setIsSending(true);
 
     try {
@@ -354,7 +382,7 @@ export default function AiChatClient({
       const assistantMessage: Message = {
         id: newId("assistant"),
         role: "assistant",
-        kind: "voice",
+        kind: assistantKindFor(body.text ?? ""),
         content: body.text,
         createdAt: Date.now(),
       };
@@ -377,7 +405,7 @@ export default function AiChatClient({
   }
 
   async function startVoiceCapture() {
-    if (isRecording || isSending || isTranscribing) return;
+    if (isRecording || isTranscribing) return;
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("Microphone recording is not available in this browser.");
       return;
@@ -509,6 +537,13 @@ export default function AiChatClient({
       <header className="shrink-0 border-b border-[var(--card-border)] bg-[var(--background)] px-3 py-3">
         <div className="rounded-2xl border border-amber-200 bg-[var(--accent-yellow)] px-3 py-2.5 shadow-sm">
           <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/chat"
+              className="grid h-9 w-9 place-items-center rounded-full text-zinc-700 -ml-1"
+              aria-label="Back to chats"
+            >
+              <ArrowLeft size={20} />
+            </Link>
             <div className="relative h-12 w-12 overflow-hidden rounded-full border border-amber-300 bg-white">
               <Image src={counsellor.portrait} alt={counsellor.name} fill sizes="48px" className="object-cover" />
             </div>
@@ -545,7 +580,7 @@ export default function AiChatClient({
             {messages.map((message, index) => {
               const assistant = message.role === "assistant";
               const seen = !assistant && messages.slice(index + 1).some((item) => item.role === "assistant");
-              const voiceLike = message.kind === "voice" || assistant;
+              const voiceLike = message.kind === "voice";
               return (
                 <div key={message.id} className={`flex ${assistant ? "justify-start" : "justify-end"}`}>
                   <div
@@ -611,7 +646,7 @@ export default function AiChatClient({
               key={suggestion}
               type="button"
               onClick={() => sendMessage(suggestion)}
-              disabled={isSending || isRecording || isTranscribing}
+              disabled={isRecording || isTranscribing}
               className="shrink-0 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm disabled:opacity-50"
             >
               {suggestion}
@@ -642,7 +677,7 @@ export default function AiChatClient({
                   startVoiceCapture();
                 }
               }}
-              disabled={isSending || isTranscribing}
+              disabled={isTranscribing}
               className={`grid h-9 w-9 shrink-0 place-items-center rounded-full disabled:text-zinc-300 ${
                 isRecording ? "bg-red-100 text-red-600" : "text-zinc-500"
               }`}
@@ -678,11 +713,11 @@ export default function AiChatClient({
           </div>
           <button
             type="submit"
-            disabled={(!input.trim() && !isRecording) || isSending || isTranscribing}
+            disabled={(!input.trim() && !isRecording) || isTranscribing}
             className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-zinc-900 text-white shadow-sm disabled:bg-zinc-300"
             aria-label={isRecording ? "Send voice note" : "Send message"}
           >
-            {isSending || isTranscribing ? <Loader2 size={19} className="animate-spin" /> : <Send size={19} />}
+            {isTranscribing ? <Loader2 size={19} className="animate-spin" /> : <Send size={19} />}
           </button>
         </div>
       </form>

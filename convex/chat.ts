@@ -82,6 +82,50 @@ export const saveProfile = mutation({
     },
 });
 
+export const listSessions = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+        const userKey = identity.tokenIdentifier;
+
+        // Pull recent messages for this user across all counsellors and fold
+        // them into one summary per counsellor (most recent first).
+        const recent = await ctx.db
+            .query("chatMessages")
+            .withIndex("by_userKey_and_counsellorSlug_and_createdAt", (q) =>
+                q.eq("userKey", userKey)
+            )
+            .order("desc")
+            .take(500);
+
+        const seen = new Map<string, {
+            counsellorSlug: string;
+            lastMessage: string;
+            lastRole: "user" | "assistant";
+            lastAt: number;
+            messageCount: number;
+        }>();
+
+        for (const m of recent) {
+            const existing = seen.get(m.counsellorSlug);
+            if (existing) {
+                existing.messageCount += 1;
+            } else {
+                seen.set(m.counsellorSlug, {
+                    counsellorSlug: m.counsellorSlug,
+                    lastMessage: m.content,
+                    lastRole: m.role,
+                    lastAt: m.createdAt,
+                    messageCount: 1,
+                });
+            }
+        }
+
+        return Array.from(seen.values()).sort((a, b) => b.lastAt - a.lastAt);
+    },
+});
+
 export const appendMessage = mutation({
     args: {
         counsellorSlug: v.string(),

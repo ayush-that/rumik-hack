@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { PhoneOff } from "lucide-react";
+import Sigil from "./Sigil";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -453,52 +454,75 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         (errorMsg ?? "Error");
 
     return (
-        <div className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col items-center justify-center overflow-hidden px-6 py-4 text-center">
-            <Image
-                src={counsellor.portrait}
-                alt={counsellor.name}
-                width={160}
-                height={160}
-                className="rounded-full object-cover h-40 w-40"
-            />
-            <h1 className="mt-4 text-2xl font-bold">{counsellor.name}</h1>
+        <div className="relative flex h-[calc(100dvh-9rem)] min-h-0 flex-col items-center justify-center overflow-hidden px-6 py-4 text-center">
+            {/* Ceremonial sigil halo behind the portrait */}
+            <div className="absolute top-[12%] text-[var(--saffron)] opacity-[0.18] pointer-events-none">
+                <Sigil size={340} weight={0.7} spin />
+            </div>
 
-            <div className="mt-2 flex items-center gap-2 justify-center">
+            <p className="eyebrow relative text-[var(--ink-mute)]">In session with</p>
+            <div className="relative mt-3 mb-1">
+                <Image
+                    src={counsellor.portrait}
+                    alt={counsellor.name}
+                    width={160}
+                    height={160}
+                    className="rounded-full object-cover h-40 w-40 ring-1 ring-[var(--card-border-strong)] shadow-[0_8px_30px_-12px_rgba(94,35,8,0.4)]"
+                />
+            </div>
+            <h1
+                className="relative mt-3 font-display text-3xl text-[var(--ink)]"
+                style={{ fontVariationSettings: '"opsz" 80, "SOFT" 30' }}
+            >
+                {counsellor.name}
+            </h1>
+            {counsellor.hometown && (
+                <p className="relative text-xs text-[var(--ink-faint)] mt-0.5">{counsellor.hometown}</p>
+            )}
+
+            <div className="relative mt-3 flex items-center gap-2 justify-center">
                 {state === "live" ? (
-                    <>
-                        <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                    <span className="inline-flex items-center gap-2 rounded-full bg-[var(--peacock-wash)] border border-[var(--peacock-soft)]/50 px-3 py-1 text-[var(--peacock)] text-xs font-semibold">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--peacock-soft)] opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--peacock)]" />
                         </span>
-                        <span className="text-emerald-600 font-semibold text-sm">Live</span>
-                    </>
+                        Live session
+                    </span>
                 ) : state === "error" ? (
-                    <p className="text-red-500 text-sm max-w-xs">{stateCaption}</p>
+                    <p className="text-[var(--sindoor)] text-sm max-w-xs italic" style={{ fontFamily: "var(--font-display)" }}>
+                        {stateCaption}
+                    </p>
                 ) : (
-                    <p className="text-zinc-500 text-sm">{stateCaption}</p>
+                    <p className="text-[var(--ink-faint)] text-sm italic" style={{ fontFamily: "var(--font-display)" }}>
+                        {stateCaption}
+                    </p>
                 )}
             </div>
 
             {state === "connecting" && (
-                <div className="mt-3 flex gap-1 justify-center">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse [animation-delay:150ms]" />
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse [animation-delay:300ms]" />
+                <div className="relative mt-3 flex gap-1 justify-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--saffron)] animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--saffron)] animate-pulse [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--saffron)] animate-pulse [animation-delay:300ms]" />
                 </div>
             )}
 
             {state === "live" && (
-                <div className="mt-6 max-h-[34dvh] min-h-0 w-full max-w-sm space-y-2 overflow-hidden">
+                <div className="relative mt-6 max-h-[34dvh] min-h-0 w-full max-w-sm space-y-2 overflow-hidden">
                     {lastUserText && (
                         <div className="flex justify-end">
-                            <div className="bg-zinc-100 rounded-2xl rounded-br-sm px-4 py-2 text-sm text-zinc-700 max-w-[80%] break-words text-left">
+                            <div className="bg-[var(--paper-deep)] border border-[var(--card-border-strong)] rounded-2xl rounded-br-sm px-4 py-2 text-sm text-[var(--ink-soft)] max-w-[80%] break-words text-left">
                                 {lastUserText}
                             </div>
                         </div>
                     )}
                     {lastBotText && (
                         <div className="flex justify-start">
-                            <div className="bg-emerald-50 rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-emerald-900 max-w-[80%] break-words text-left">
+                            <div
+                                className="bg-[var(--saffron-wash)] border border-[var(--saffron-soft)]/50 rounded-2xl rounded-bl-sm px-4 py-2 text-sm text-[var(--saffron-ink)] max-w-[80%] break-words text-left italic"
+                                style={{ fontFamily: "var(--font-display)", fontVariationSettings: '"opsz" 14' }}
+                            >
                                 {lastBotText}
                             </div>
                         </div>
@@ -508,9 +532,9 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
 
             <button
                 onClick={handleEnd}
-                className="mt-8 inline-flex shrink-0 items-center gap-2 rounded-full bg-red-500 px-6 py-3 font-semibold text-white transition-transform active:scale-95"
+                className="relative mt-8 inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--sindoor)] px-6 py-3 font-semibold text-[var(--paper)] transition-transform active:scale-95 shadow-[0_4px_16px_-6px_rgba(168,35,26,0.5)]"
             >
-                <PhoneOff size={18} /> End
+                <PhoneOff size={17} strokeWidth={2} /> End session
             </button>
         </div>
     );

@@ -38,25 +38,29 @@ export default function HeaderSearch() {
 
     if (!open) {
         return (
-            <button onClick={() => setOpen(true)} aria-label="Search">
-                <Search size={22} className="text-zinc-700" />
+            <button
+                onClick={() => setOpen(true)}
+                aria-label="Search"
+                className="text-[var(--ink-soft)] hover:text-[var(--saffron)] transition-colors"
+            >
+                <Search size={20} strokeWidth={1.6} />
             </button>
         );
     }
 
     return (
-        <div className="flex items-center gap-2 bg-white border border-[var(--card-border)] rounded-full px-3 py-1.5 w-full max-w-[260px]">
-            <Search size={16} className="text-zinc-500 shrink-0" />
+        <div className="flex items-center gap-2 bg-[var(--vellum)] border border-[var(--card-border-strong)] rounded-full px-3 py-1.5 w-full max-w-[240px]">
+            <Search size={14} className="text-[var(--saffron)] shrink-0" strokeWidth={1.8} />
             <input
                 ref={inputRef}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Escape" && close()}
-                placeholder="Search counsellors"
-                className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-zinc-400"
+                placeholder="Find a counsellor"
+                className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--ink-mute)] text-[var(--ink)]"
             />
-            <button onClick={close} aria-label="Close search" className="shrink-0">
-                <X size={16} className="text-zinc-500" />
+            <button onClick={close} aria-label="Close search" className="shrink-0 text-[var(--ink-faint)]">
+                <X size={14} />
             </button>
         </div>
     );
