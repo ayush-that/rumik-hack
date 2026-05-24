@@ -86,12 +86,10 @@ async def run_bot(transport: BaseTransport, counsellor: dict | None = None):
         aiohttp_session=aiohttp_session,
         base_url=os.getenv("SILK_BASE_URL", "https://silk-api.rumik.ai"),
         settings=RumikTTSSettings(
-            model=os.getenv("SILK_MODEL", "mulberry"),
-            speaker=os.getenv("SILK_SPEAKER", "speaker_1"),
-            description=(
-                "Warm, calm, experienced Indian astrologer voice. "
-                "Mid-paced delivery suitable for a counselling phone call."
-            ),
+            model=os.getenv("SILK_MODEL", "muga"),
+            tone=os.getenv("SILK_TONE", "neutral"),
+            speaker=os.getenv("SILK_SPEAKER") or None,
+            description=os.getenv("SILK_DESCRIPTION") or None,
         ),
     )
 

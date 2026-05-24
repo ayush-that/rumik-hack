@@ -19,7 +19,9 @@ from pipecat.utils.tracing.service_decorators import traced_tts
 class RumikTTSSettings(TTSSettings):
     """Settings for Rumik SILK."""
 
-    model: str = "mulberry"            # "muga" or "mulberry"
+    model: str = "muga"                # "muga" or "mulberry"
+    # muga only — one of: neutral, happy, sad, excited, angry, whisper
+    tone: str = "neutral"
     description: Optional[str] = None  # mulberry only
     speaker: Optional[str] = None      # mulberry preset: speaker_1..speaker_4
     f0_up_key: int = 0                 # pitch shift in semitones, -12..12
@@ -77,6 +79,10 @@ class RumikTTSService(TTSService):
             return
         # Rumik caps text at 2000 chars
         text = text[:2000]
+
+        # Muga is steered via a [tone] prefix; mulberry doesn't use tone tags.
+        if self._settings.model == "muga" and not text.lstrip().startswith("["):
+            text = f"[{self._settings.tone}] {text}"
 
         logger.debug(f"{self}: Rumik SILK TTS [{text!r}]")
 
