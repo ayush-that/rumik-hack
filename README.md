@@ -7,6 +7,10 @@
 <p align="center">Call or chat with a verified astrologer in minutes. Voice-first, Hinglish, real-time.</p>
 
 <p align="center">
+  <a href="https://youtu.be/A9E0XC5RAlw"><b>▶ Watch the demo</b></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Next.js-16-000?logo=nextdotjs" />
   <img src="https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white" />
   <img src="https://img.shields.io/badge/Convex-backend-EE342F?logo=convex&logoColor=white" />
