@@ -215,15 +215,37 @@ function VoiceCallInner({ counsellor, client }: Props & { client: PipecatClient 
 }
 
 export default function VoiceCallClient({ counsellor }: Props) {
-  const client = useMemo(
-    () =>
-      new PipecatClient({
-        transport: new SmallWebRTCTransport(),
-        enableMic: true,
-        enableCam: false,
-      }),
-    []
-  );
+  // Defer Pipecat/Daily instantiation to client mount — Daily.createCallObject()
+  // touches WebRTC globals that don't exist during SSR.
+  const [client, setClient] = useState<PipecatClient | null>(null);
+
+  useEffect(() => {
+    const c = new PipecatClient({
+      transport: new SmallWebRTCTransport(),
+      enableMic: true,
+      enableCam: false,
+    });
+    setClient(c);
+    return () => {
+      c.disconnect().catch(() => {});
+    };
+  }, []);
+
+  if (!client) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+        <Image
+          src={counsellor.portrait}
+          alt={counsellor.name}
+          width={160}
+          height={160}
+          className="rounded-full object-cover h-40 w-40"
+        />
+        <h1 className="mt-4 text-2xl font-bold">{counsellor.name}</h1>
+        <p className="text-zinc-500 text-sm mt-2">Preparing…</p>
+      </div>
+    );
+  }
 
   // client-react redeclares PipecatClient locally in its typedefs instead of
   // re-exporting it from client-js, so we need a cast to satisfy the Provider prop.
