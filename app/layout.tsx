@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Cyrux - SaaS Starter Template',
-  description: 'Landing page of Cyrux',
+  title: 'Tara — Talk to a counsellor',
+  description: 'Call verified astrology counsellors for guidance on marriage, health, wealth, legal, finance and career.',
 };
 export default async function RootLayout({
   children,

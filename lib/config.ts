@@ -1,6 +1,6 @@
 export const appConfig = {
-    name: "Cyrux",
+    name: "Tara",
     logo: "/logo.png",
-    description: "Cyrux is a modern web application template with auth, database, and SEO blogs handled.",
-    url: "cyrux.in",
+    description: "Call verified astrology counsellors for guidance on marriage, health, wealth, legal, finance and career.",
+    url: "tara.app",
 }

@@ -5,7 +5,7 @@ export default function Navbar({ isAuth }: { isAuth: boolean }) {
         <nav className="text-white flex justify-between w-full py-5 px-8 items-center">
             <Link href="/" className="flex items-center justify-center gap-2 font-bold tracking-tighter text-2xl">
      
-                cyrux
+                tara
             </Link>
 
             <ul className="flex gap-4 font-medium tracking-tight">
