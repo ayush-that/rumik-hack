@@ -44,14 +44,12 @@ function VoiceCallInner({ counsellor, client }: Props & { client: PipecatClient 
       webrtcRequestParams: {
         endpoint: `${agentUrl}/api/offer`,
         requestData: {
-          request_data: {
-            counsellor: {
-              slug: counsellor.slug,
-              name: counsellor.name,
-              specialties: counsellor.specialties,
-              languages: counsellor.languages,
-              experienceYears: counsellor.experienceYears,
-            },
+          counsellor: {
+            slug: counsellor.slug,
+            name: counsellor.name,
+            specialties: counsellor.specialties,
+            languages: counsellor.languages,
+            experienceYears: counsellor.experienceYears,
           },
         },
       },
