@@ -46,6 +46,40 @@ load_dotenv(override=True)
 
 from rumik_tts import RumikTTSService, RumikTTSSettings
 
+# ---------------------------------------------------------------------------
+# Pipecat bug workaround: the JS SDK posts `requestData` (camelCase) but the
+# Python SmallWebRTCRequest dataclass uses `request_data` (snake_case) WITHOUT
+# a pydantic alias. FastAPI silently drops the field, so runner_args.body
+# always ends up None. We patch by rewriting the body in middleware before
+# FastAPI parses it. This is what `SmallWebRTCRequest.from_dict` would do if
+# it were called — but FastAPI never calls it.
+# ---------------------------------------------------------------------------
+import json as _json
+from pipecat.runner.run import app as _runner_app
+
+
+@_runner_app.middleware("http")
+async def _normalize_request_data(request, call_next):
+    if request.method == "POST" and request.url.path == "/api/offer":
+        body = await request.body()
+        try:
+            data = _json.loads(body)
+        except Exception:
+            data = None
+        if isinstance(data, dict) and "requestData" in data and "request_data" not in data:
+            data["request_data"] = data.pop("requestData")
+            new_body = _json.dumps(data).encode()
+            # Replace both the cached body and the receive channel — FastAPI
+            # reads from the cache after middleware calls .body(), so we must
+            # overwrite _body, and downstream re-reads use _receive.
+            request._body = new_body
+
+            async def receive():
+                return {"type": "http.request", "body": new_body, "more_body": False}
+
+            request._receive = receive
+    return await call_next(request)
+
 
 def build_system_prompt(counsellor: dict | None) -> str:
     if not counsellor:

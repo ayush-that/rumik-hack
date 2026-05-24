@@ -13,7 +13,7 @@ const TABS = [
 export default function BottomNav() {
     const pathname = usePathname();
     return (
-        <nav className="fixed bottom-0 inset-x-0 mx-auto max-w-[480px] bg-white border-t border-[var(--card-border)] flex justify-around py-2 z-50">
+        <nav className="fixed bottom-0 inset-x-0 mx-auto max-w-[480px] bg-white border-t border-x border-[var(--card-border)] flex justify-around py-2 z-50">
             {TABS.map(({ href, label, Icon }) => {
                 const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
                 return (

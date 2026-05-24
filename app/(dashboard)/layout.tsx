@@ -4,6 +4,7 @@ import { isAuthenticated } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import { ClientAuthBoundary } from "@/lib/auth-client";
 import BottomNav from "@/components/BottomNav";
+import DashboardHeader from "@/components/DashboardHeader";
 
 export const metadata: Metadata = { title: "Dashboard", description: "Dashboard" };
 
@@ -11,7 +12,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (!(await isAuthenticated())) redirect("/sign-in");
     return (
         <ClientAuthBoundary>
-            <main className="mx-auto max-w-[480px] min-h-screen bg-[var(--background)] pb-20">
+            <DashboardHeader />
+            <main className="mx-auto max-w-[480px] min-h-screen bg-[var(--background)] border-x border-[var(--card-border)] pt-16 pb-20">
                 {children}
             </main>
             <BottomNav />
