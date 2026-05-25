@@ -54,7 +54,6 @@ export async function POST(req: Request) {
     const isMale = explicitGender === "male" || (!!counsellorSlug && MALE_SLUGS.has(counsellorSlug));
 
     const model = isMale ? "mulberry" : process.env.SILK_MODEL || "muga";
-    // Randomise per request → variety across calls and across turns.
     const tone = isMale ? null : pickRandom(FEMALE_TONES);
     const description = isMale ? pickRandom(MALE_DESCRIPTIONS) : null;
 

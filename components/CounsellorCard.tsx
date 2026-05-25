@@ -28,7 +28,6 @@ export default function CounsellorCard({
 
     return (
         <article className="card-paper relative mx-4 my-3 overflow-hidden">
-            {/* Faint sigil behind portrait — page-turn motif */}
             <div className="absolute -right-6 -top-6 text-[var(--saffron)] opacity-[0.09] pointer-events-none">
                 <Sigil size={140} weight={0.9} />
             </div>
@@ -37,7 +36,6 @@ export default function CounsellorCard({
                 href={`/dashboard/counsellor/${c.slug}`}
                 className="relative flex items-start gap-3.5 p-4 pb-3"
             >
-                {/* Portrait with sigil halo ring */}
                 <div className="relative shrink-0">
                     <span className="absolute -inset-1.5 rounded-full border border-[var(--card-border-strong)]" />
                     <Image
@@ -48,7 +46,6 @@ export default function CounsellorCard({
                         priority={priority}
                         className="relative rounded-full object-cover h-[84px] w-[84px] ring-1 ring-[var(--paper-edge)]"
                     />
-                    {/* Availability sliver */}
                     <span
                         className={`absolute -bottom-0.5 right-0 h-3 w-3 rounded-full border-2 border-[var(--vellum)] ${
                             available ? "bg-[var(--peacock)]" : "bg-[var(--sindoor-soft)]"
@@ -100,10 +97,8 @@ export default function CounsellorCard({
                 </div>
             </Link>
 
-            {/* Hairline rule */}
             <div className="relative mx-4 h-px bg-gradient-to-r from-transparent via-[var(--card-border-strong)] to-transparent" />
 
-            {/* Footer — price + CTAs */}
             <div className="relative flex items-center gap-3 px-4 py-3">
                 <div className="flex flex-col leading-tight">
                     <span className="eyebrow text-[var(--ink-mute)]">From</span>

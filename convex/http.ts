@@ -11,11 +11,7 @@ http.route({
   path: "/dodo-webhook",
   method: "POST",
   handler: createDodoWebhookHandler({
-    // Handle successful payments
     onPaymentSucceeded: async (ctx, payload) => {
-      console.log("🎉 Payment Succeeded!");
-
-      // Use Convex context to persist payment data
       await ctx.runMutation(internal.webhooks.createPayment, {
         paymentId: payload.data.payment_id,
         businessId: payload.business_id,
@@ -27,10 +23,7 @@ http.route({
       });
     },
 
-    // Handle subscription activation
     onSubscriptionActive: async (ctx, payload) => {
-      console.log("🎉 Subscription Activated!");
-      // Use Convex context to persist subscription data
       await ctx.runMutation(internal.webhooks.createSubscription, {
         subscriptionId: payload.data.subscription_id,
         businessId: payload.business_id,
@@ -39,7 +32,6 @@ http.route({
         webhookPayload: JSON.stringify(payload),
       });
     },
-    // Add other event handlers as needed
   }),
 });
 

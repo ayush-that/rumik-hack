@@ -348,8 +348,7 @@ export default function AiChatClient({
       }));
     }
 
-    // Functional setter so back-to-back sends don't lose the previous one
-    // (stale-closure race). We grab the post-append snapshot for the API.
+    // Functional setter so back-to-back sends don't lose the previous one (stale-closure race).
     let nextMessages: Message[] = [];
     setMessages((current) => {
       nextMessages = [...current, userMessage];

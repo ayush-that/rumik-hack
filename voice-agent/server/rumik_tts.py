@@ -120,7 +120,6 @@ class RumikTTSService(TTSService):
         try:
             await self.start_ttfb_metrics()
 
-            # Step 1: mint a one-shot WS session
             async with self._session.post(mint_url, headers=headers, json=mint_body) as resp:
                 if resp.status != 200:
                     err = await resp.text()
@@ -136,7 +135,6 @@ class RumikTTSService(TTSService):
 
             await self.start_tts_usage_metrics(text)
 
-            # Step 2: connect WS, send synthesis frame, stream PCM frames out
             full_url = f"{ws_url}?token={token}"
             async with websockets.connect(full_url, max_size=None) as ws:
                 await ws.send(json.dumps(synthesis))

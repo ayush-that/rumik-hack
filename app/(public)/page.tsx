@@ -18,7 +18,6 @@ export default async function LandingPage() {
     return (
         <section className="relative flex min-h-[calc(100dvh-60px)] flex-col px-6 pb-6">
             <div className="relative flex flex-1 flex-col items-center justify-center text-center">
-                {/* Sigil halo behind hero */}
                 <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[58%] text-[var(--saffron)] opacity-[0.14]">
                     <Sigil size={320} weight={0.7} spin />
                 </div>

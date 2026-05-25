@@ -30,7 +30,6 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
             enabled: true,
         },
         plugins: [
-            // The Convex plugin is required for Convex compatibility
             convex({ authConfig }),
         ],
     })

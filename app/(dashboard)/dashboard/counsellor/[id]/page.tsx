@@ -20,7 +20,6 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
 
     return (
         <div className="relative">
-            {/* Back chevron — minimal, ink */}
             <div className="px-4 pt-3">
                 <Link
                     href="/dashboard"
@@ -30,9 +29,7 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                 </Link>
             </div>
 
-            {/* ---------- Hero ---------- */}
             <section className="relative px-6 pt-2 pb-6 text-center overflow-hidden">
-                {/* Sigil halo behind portrait */}
                 <div className="absolute left-1/2 -translate-x-1/2 top-6 text-[var(--saffron)] opacity-30 pointer-events-none">
                     <Sigil size={280} weight={0.7} spin />
                 </div>
@@ -85,7 +82,6 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                     </p>
                 )}
 
-                {/* Stat strip — three big numbers in serif */}
                 <div className="mt-6 grid grid-cols-3 gap-2 ink-reveal ink-reveal-delay-3">
                     {[
                         { label: "Experience", value: `${c.experienceYears}`, suffix: "yrs" },
@@ -111,14 +107,12 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                     ))}
                 </div>
 
-                {/* Rating row */}
                 <div className="mt-3 inline-flex items-center gap-2 text-xs text-[var(--ink-faint)]">
                     <RatingStars rating={c.rating} size={12} />
                     <span className="nums">{c.rating.toFixed(1)} from {c.ordersCount.toLocaleString()} sessions</span>
                 </div>
             </section>
 
-            {/* ---------- Bio ---------- */}
             {c.bio && (
                 <section className="px-5 pb-2">
                     <Ornament label="About" />
@@ -126,7 +120,6 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                         className="text-[15px] leading-relaxed text-[var(--ink-soft)] mt-2"
                         style={{ fontFamily: "var(--font-display)", fontVariationSettings: '"opsz" 18, "SOFT" 60' }}
                     >
-                        {/* Drop cap for the first letter */}
                         <span
                             className="float-left mr-2 font-display leading-[0.85] text-[var(--saffron)] text-[3.4rem] mt-1"
                             style={{ fontVariationSettings: '"opsz" 144, "SOFT" 30' }}
@@ -138,7 +131,6 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                 </section>
             )}
 
-            {/* ---------- Specialties ---------- */}
             <section className="px-5 mt-4">
                 <Ornament label="Specialties" />
                 <div className="flex flex-wrap gap-1.5 mt-3">
@@ -160,15 +152,12 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                 </div>
             </section>
 
-            {/* ---------- Signature pull-quote ---------- */}
             {c.signature && (
                 <section className="px-5 mt-6">
                     <blockquote className="relative card-paper px-5 py-5 bg-[var(--saffron-wash)] border-[var(--saffron-soft)]/50">
-                        {/* Floating sigil */}
                         <div className="absolute right-3 top-3 text-[var(--saffron)]/30">
                             <Sigil size={48} weight={0.6} />
                         </div>
-                        {/* Big serif open-quote */}
                         <span
                             className="absolute -left-1 -top-3 font-display text-[5rem] leading-none text-[var(--saffron)] select-none pointer-events-none"
                             style={{ fontVariationSettings: '"opsz" 144' }}
@@ -188,7 +177,6 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                 </section>
             )}
 
-            {/* ---------- Price ledger ---------- */}
             <section className="px-5 mt-6">
                 <Ornament label="The Rate" />
                 <div className="mt-3 flex items-baseline justify-center gap-3">
@@ -208,7 +196,6 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                 </p>
             </section>
 
-            {/* ---------- CTAs ---------- */}
             <section className="px-5 mt-7 grid grid-cols-[1fr_1.5fr] gap-2.5">
                 <Link
                     href={`/dashboard/chat?counsellor=${c.slug}`}
@@ -230,7 +217,6 @@ export default async function CounsellorDetailPage({ params }: { params: Promise
                 </Link>
             </section>
 
-            {/* ---------- Reviews ---------- */}
             <section className="px-5 mt-10">
                 <Ornament label="What clients say" />
                 <div className="flex items-baseline justify-between mt-3 mb-3">

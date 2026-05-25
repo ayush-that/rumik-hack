@@ -1,8 +1,3 @@
-// LLM brain: OpenRouter → google/gemini-3.1-flash-lite-preview.
-// Uses OpenAI-compatible chat completions (simpler than Google's direct
-// systemInstruction / contents shape). Takes the full conversation
-// history every turn so the bot has full context.
-
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -136,8 +131,6 @@ export async function POST(req: Request) {
     const profile: UserProfile | null = body.profile ?? null;
     const messages: ChatMessage[] = Array.isArray(body.messages) ? body.messages : [];
 
-    // OpenAI-compatible: system message goes in the messages array; assistant
-    // role stays as "assistant" (no Google-specific "model" rename).
     const fullMessages: ChatMessage[] = [
         { role: "system", content: buildSystemPrompt(counsellor, profile) },
         ...messages.filter((m) => m.role !== "system"),

@@ -9,16 +9,13 @@ export default async function AuthLayout({ children }: PropsWithChildren) {
     }
     return (
         <main className="relative mx-auto w-full max-w-[480px] min-h-screen bg-[var(--paper)] border-x border-[var(--card-border)] flex flex-col overflow-hidden">
-            {/* Decorative top-left sigil bleed */}
             <div className="absolute -left-16 -top-16 text-[var(--saffron)] opacity-[0.10] pointer-events-none">
                 <Sigil size={260} weight={0.7} spin />
             </div>
-            {/* Decorative bottom-right sigil bleed */}
             <div className="absolute -right-20 -bottom-20 text-[var(--peacock)] opacity-[0.10] pointer-events-none">
                 <Sigil size={300} weight={0.65} />
             </div>
 
-            {/* Brand zone — top, centered */}
             <header className="relative flex flex-col items-center pt-14 pb-4">
                 <div className="relative text-[var(--saffron)]">
                     <Sigil size={68} weight={1.1} spin />
@@ -32,12 +29,10 @@ export default async function AuthLayout({ children }: PropsWithChildren) {
                 <p className="mt-1 eyebrow text-[var(--ink-faint)]">An almanac for the soul</p>
             </header>
 
-            {/* Body — vertically centered between brand + footer */}
             <section className="relative flex-1 flex items-center justify-center px-6 py-4">
                 <div className="w-full">{children}</div>
             </section>
 
-            {/* Footer — quiet trust line */}
             <footer className="relative flex flex-col items-center pb-8 px-6">
                 <div className="flex items-center gap-2 text-[var(--ink-mute)]">
                     <span className="h-px w-10 bg-[var(--card-border-strong)]" />

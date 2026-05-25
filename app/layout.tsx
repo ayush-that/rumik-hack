@@ -6,7 +6,6 @@ import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { UserSync } from "@/components/UserSync";
 import { cn } from "@/lib/utils";
 
-// Display serif with optical sizing — gives headlines real character.
 // next/font requires `weight` to be omitted (or set to "variable") when
 // `axes` is provided; the full variable font ships all weights anyway.
 const fraunces = Fraunces({
@@ -16,7 +15,6 @@ const fraunces = Fraunces({
     display: "swap",
 });
 
-// Body sans — soft geometric, pairs cleanly with Fraunces.
 const manrope = Manrope({
     subsets: ["latin"],
     variable: "--font-sans",

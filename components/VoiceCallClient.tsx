@@ -52,7 +52,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
     const appendTurn = useMutation(api.calls.appendTurn);
     const endCall = useMutation(api.calls.end);
 
-    // --- mutable refs (don't trigger re-render) ---
     const startedRef = useRef(false);
     const callIdRef = useRef<Id<"calls"> | null>(null);
     const callIdPromiseRef = useRef<Promise<Id<"calls">> | null>(null);
@@ -62,15 +61,14 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
     const micProcessorRef = useRef<ScriptProcessorNode | null>(null);
     const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
-    const audioCtxRef = useRef<AudioContext | null>(null); // separate ctx for 24kHz TTS playback
+    const audioCtxRef = useRef<AudioContext | null>(null);
     const ttsWsRef = useRef<WebSocket | null>(null);
     const ttsSourcesRef = useRef<AudioBufferSourceNode[]>([]);
     const playAtRef = useRef(0);
-    const ttsGenRef = useRef(0); // bumped to invalidate any in-flight TTS
+    const ttsGenRef = useRef(0);
     const inFlightChatRef = useRef<AbortController | null>(null);
     const dgKeepAliveRef = useRef<number | null>(null);
 
-    // ----- TTS playback -----
     const stopPlayback = useCallback(() => {
         ttsGenRef.current += 1;
         if (ttsWsRef.current && ttsWsRef.current.readyState === WebSocket.OPEN) {
@@ -87,7 +85,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
     }, []);
 
     const speak = useCallback(async (text: string) => {
-        // Cancel any in-flight TTS first (interruption)
         stopPlayback();
 
         const myGen = ttsGenRef.current + 1;
@@ -110,7 +107,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         if (ctx.state === "suspended") await ctx.resume();
         if (playAtRef.current < ctx.currentTime) playAtRef.current = ctx.currentTime;
 
-        // muga: prefix [tone] tag on the text. mulberry: ignore tones, send description.
+        // muga expects a [tone] prefix; mulberry uses the description field instead
         const isMuga = model === "muga";
         const synthesisText = isMuga
             ? (text.trimStart().startsWith("[") ? text : `[${tone || "neutral"}] ${text}`)
@@ -125,7 +122,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                 try { ws.close(); } catch {}
                 return;
             }
-            // Send synthesis frame per Rumik docs. Mulberry needs `description`.
             const frame: Record<string, unknown> = { text: synthesisText };
             if (!isMuga && description) frame.description = description;
             ws.send(JSON.stringify(frame));
@@ -177,24 +173,22 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         return callIdPromiseRef.current;
     }, [startCall, counsellor.slug]);
 
-    // ----- LLM turn (single-shot non-streaming — reverted from streaming) -----
+    // single-shot non-streaming — reverted from streaming
     const handleUserTurn = useCallback(async (userText: string, opts?: { showInUi?: boolean }) => {
         const trimmed = userText.trim();
         if (!trimmed) return;
 
-        // Append to history
         messagesRef.current = [...messagesRef.current, { role: "user", content: trimmed }];
         if (opts?.showInUi !== false) setLastUserText(trimmed);
         setLastBotText(null);
 
-        // Persist user turn (skip the synthetic kickoff prompt)
+        // skip the synthetic kickoff prompt
         if (opts?.showInUi !== false) {
             ensureCallStarted()
                 .then((id) => appendTurn({ callId: id, role: "user", text: trimmed }))
                 .catch((e) => console.error("[voice] persist user turn failed", e));
         }
 
-        // Cancel any in-flight chat from a previous (unfinished) turn
         if (inFlightChatRef.current) inFlightChatRef.current.abort();
         const ac = new AbortController();
         inFlightChatRef.current = ac;
@@ -241,7 +235,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         }
     }, [counsellor, profile, speak, appendTurn, ensureCallStarted]);
 
-    // ----- Bootstrap call -----
     useEffect(() => {
         // NOTE: do NOT guard with a ref-based "already started" check. Next.js
         // dev runs effects twice (React Strict Mode); a ref-guard makes the
@@ -252,7 +245,7 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
 
         (async () => {
             try {
-                // 1. Get mic — race with a timeout so we surface stuck permission
+                // race with a timeout so we surface stuck permission prompt
                 const stream = await Promise.race([
                     navigator.mediaDevices.getUserMedia({
                         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -266,19 +259,14 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                     return;
                 }
                 streamRef.current = stream;
-                console.log("[voice] mic OK");
 
-                // 2. Fetch Deepgram key
                 const keyRes = await fetch("/api/voice/deepgram-key");
                 if (!keyRes.ok) throw new Error(`deepgram-key fetch failed: ${keyRes.status}`);
                 const { key, error: keyErr } = await keyRes.json();
                 if (keyErr || !key) throw new Error(keyErr || "no deepgram key returned");
-                console.log("[voice] dg key OK");
 
-                // 3. Open Deepgram Flux WS (Hinglish-capable, /v2/listen)
-                //    Flux requires raw PCM linear16 — we set up ScriptProcessor
-                //    below to send that. eot_timeout_ms controls how long Flux
-                //    waits after speech before firing EndOfTurn.
+                // Flux requires raw PCM linear16 via ScriptProcessor.
+                // eot_timeout_ms controls how long Flux waits after speech before firing EndOfTurn.
                 const micCtx = new AudioContext();
                 micCtxRef.current = micCtx;
                 const sr = micCtx.sampleRate; // typically 48000
@@ -289,7 +277,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                     sample_rate: String(sr),
                     eot_timeout_ms: "1500",
                 });
-                // Flux supports repeated language_hint params for multilingual
                 params.append("language_hint", "hi");
                 params.append("language_hint", "en");
 
@@ -300,20 +287,17 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                 let interimBuf = "";
 
                 dgWs.onopen = () => {
-                    console.log("[voice] dg flux ws open", { sampleRate: sr });
                     if (cancelled) {
                         try { dgWs.close(); } catch {}
                         return;
                     }
 
-                    // 4. Stream raw PCM linear16 from mic → Flux
                     const source = micCtx.createMediaStreamSource(stream);
                     micSourceRef.current = source;
                     const processor = micCtx.createScriptProcessor(4096, 1, 1);
                     micProcessorRef.current = processor;
                     source.connect(processor);
-                    // Connect to destination so audio actually flows; we mute by routing
-                    // through a gain=0 node so the user doesn't hear themselves echoed.
+                    // gain=0 so audio flows to Flux but the user doesn't hear themselves echoed
                     const mute = micCtx.createGain();
                     mute.gain.value = 0;
                     processor.connect(mute);
@@ -332,7 +316,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
 
                     setState("live");
 
-                    // 5. Kick off intro turn — let the bot greet the (already-known) client.
                     const firstName = (profile?.displayName ?? "").trim().split(/\s+/)[0];
                     const kickoff = firstName
                         ? `Greet ${firstName} warmly using the salutation rule, introduce yourself, and ask kya guidance chahiye aaj.`
@@ -353,7 +336,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                         const event = msg.event;
                         const text = (msg.transcript || "").trim();
                         if (event === "Update" && text) {
-                            // Interim transcript; show it and interrupt bot audio
                             setLastUserText(text);
                             stopPlayback();
                             interimBuf = text;
@@ -365,7 +347,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
                                 handleUserTurn(final);
                             }
                         } else if (event === "StartOfTurn" || event === "TurnResumed") {
-                            // User started talking — kill bot audio
                             stopPlayback();
                         }
                     } else if (msg.type === "Error") {
@@ -402,7 +383,6 @@ export default function VoiceCallClient({ counsellor, profile }: { counsellor: C
         return () => {
             cancelled = true;
             startedRef.current = false;
-            // Tear everything down
             stopPlayback();
             if (dgKeepAliveRef.current) {
                 clearInterval(dgKeepAliveRef.current);

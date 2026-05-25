@@ -30,7 +30,7 @@ export default async function CallDetailPage({ params }: { params: Promise<{ id:
     const { id } = await params;
     const data = await fetchAuthQuery(api.calls.getMine, {
         callId: id as Id<"calls">,
-    }).catch(() => null);
+    });
     if (!data) notFound();
     const { call, turns } = data;
 

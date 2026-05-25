@@ -9,7 +9,6 @@ export default defineSchema({
         dodoCustomerId: v.optional(v.string()),
         image: v.optional(v.string()),
         createdAt: v.number(),
-        // Onboarding / astrology profile
         displayName: v.optional(v.string()),
         gender: v.optional(v.union(v.literal("male"), v.literal("female"))),
         birthDate: v.optional(v.string()), // YYYY-MM-DD

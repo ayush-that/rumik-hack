@@ -16,10 +16,6 @@ type MetaTagProps = {
     canonicalUrlRelative: string,
 }
 
-/*
-    Returns Metadata object for your pages, only title and canonicalUrlRelative works for most cases 
-    Read more about meta tags here: https://nextjs.org/docs/app/api-reference/functions/generate-metadata
-*/
 export const getMetaTags = ({ title, description, url, opengraph, canonicalUrlRelative }: MetaTagProps): Metadata => {
     return {
         title: title || appConfig.name,

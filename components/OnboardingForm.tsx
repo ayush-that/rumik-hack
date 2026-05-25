@@ -131,7 +131,6 @@ export default function OnboardingForm({
 
     return (
         <div className="relative min-h-[calc(100vh-9rem)] px-6 pt-2 pb-8 flex flex-col">
-            {/* Top bar */}
             <div className="flex items-center gap-3 mb-5">
                 <button
                     type="button"
@@ -148,7 +147,6 @@ export default function OnboardingForm({
                 </span>
             </div>
 
-            {/* Step indicator — line of glyphs joined by a hairline */}
             <div className="relative mb-8">
                 <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-px bg-[var(--card-border-strong)]" />
                 <div
@@ -178,7 +176,6 @@ export default function OnboardingForm({
                 </ol>
             </div>
 
-            {/* Step body */}
             <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-[10px] tracking-widest text-[var(--saffron)]">
@@ -410,7 +407,6 @@ export default function OnboardingForm({
                 )}
             </div>
 
-            {/* CTA */}
             <button
                 type="button"
                 onClick={step === 5 ? handleFinish : goNext}
