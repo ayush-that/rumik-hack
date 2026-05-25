@@ -1,25 +1,25 @@
 import Link from "next/link";
+import Image from "next/image";
 
-export default function Navbar({ isAuth }: { isAuth: boolean }) {
+export default function Navbar() {
     return (
-        <nav className="text-white flex justify-between w-full py-5 px-8 items-center">
-            <Link href="/" className="flex items-center justify-center gap-2 font-bold tracking-tighter text-2xl">
-     
-                tara
+        <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] flex items-center px-4 py-3 bg-[var(--paper)]/85 backdrop-blur-md border-b border-x border-[var(--card-border)] z-50">
+            <Link href="/" className="flex items-center gap-2 text-[var(--ink)]">
+                <Image
+                    src="/logo.png"
+                    alt="Tara"
+                    width={28}
+                    height={28}
+                    priority
+                    className="h-7 w-7 rounded-md object-contain"
+                />
+                <span
+                    className="font-display text-xl"
+                    style={{ fontVariationSettings: '"opsz" 36, "SOFT" 60' }}
+                >
+                    tara
+                </span>
             </Link>
-
-            <ul className="flex gap-4 font-medium tracking-tight">
-                <Link href="/about">
-                    <li className="hover:underline">About</li>
-                </Link>
-                <Link href="/blog">
-                    <li className="hover:underline">Blog</li>
-                </Link>
-            </ul>
-
-            <button>
-                {isAuth ? <Link className="bg-[#f8721c] group hover:bg-[#ed7e37] cursor-pointer tracking-tighter text-lg w-fit text-black font-medium flex gap-3 items-center justify-center px-4 py-2 rounded-md" href="/dashboard">Dashboard</Link> : <Link className="bg-[#f8721c] group hover:bg-[#ed7e37] cursor-pointer tracking-tighter text-lg w-fit text-black font-medium flex gap-3 items-center justify-center px-4 py-2 rounded-md" href="/sign-in">Sign In</Link>}
-            </button>
-        </nav>
-    )
+        </header>
+    );
 }
