@@ -51,3 +51,6 @@ skills-lock.json
 /public/logo-candidates*/
 /tmp/
 *.log
+
+# local planning docs
+/docs
