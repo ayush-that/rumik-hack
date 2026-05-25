@@ -29,7 +29,7 @@ A platform where users pick a counsellor, share their birth chart, and either st
 - **Auth** — better-auth with `@convex-dev/better-auth`
 - **Voice** — Deepgram Flux (STT) · Gemini Flash Lite (LLM) · Rumik SILK (TTS)
 - **Chat** — Gemini 2.5 Flash, persisted in Convex
-- **Voice agent (legacy)** — Pipecat in `voice-agent/`, kept around but unused by default
+- **Voice agent (optional)** — Pipecat server in `voice-agent/`, not used by the default browser-direct flow
 
 ## Run it
 
@@ -54,6 +54,7 @@ First run also pulls Convex env via `npx convex dev`.
 ```
 app/(auth)        sign-in / sign-up
 app/(dashboard)   home, counsellor pages, call, chat, profile
+app/(public)      landing, about / terms / privacy
 app/api/voice     STT / LLM / TTS routes
 app/api/ai-chat   text-chat endpoint
 convex/           schema, queries, auth, counsellor seed, chat

@@ -1,5 +1,5 @@
 {
-  "name": "cyrux-template",
+  "name": "tara",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -17,9 +17,6 @@
     "@convex-dev/better-auth": "^0.11.4",
     "@dodopayments/convex": "^0.2.9",
     "@google/genai": "^2.6.0",
-    "@pipecat-ai/client-js": "^1.9.1",
-    "@pipecat-ai/client-react": "^1.5.0",
-    "@pipecat-ai/small-webrtc-transport": "^1.10.2",
     "@react-email/components": "1.0.12",
     "better-auth": "^1.5.3",
     "class-variance-authority": "^0.7.1",
